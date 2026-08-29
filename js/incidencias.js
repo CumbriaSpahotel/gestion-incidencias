@@ -720,13 +720,8 @@ function renderTable() {
             <td>${escapeHtml(item.tipo)}</td>
             <td>${escapeHtml(item.departamento)}</td>
             <td style="max-width: 300px;"><div class="truncate" title="${escapeHtml(item.descripcion)}">${escapeHtml(item.descripcion)}</div></td>
-            <td><select onchange="updateStatus('${item.id}', this.value)" class="badge ${getBadgeClass(item.estado)}">
-                <option value="Pendiente" ${item.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
-                <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
-                <option value="Cerrado" ${item.estado === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
-            </select></td>
-            <td><input type="text" value="${escapeHtml(item.responsable)}" onchange="updateResponsable('${item.id}', this.value)" placeholder="..." style="border:none;width:100px;"></td>
+            <td><span class="badge ${getBadgeClass(item.estado)}">${escapeHtml(item.estado || 'Pendiente')}</span></td>
+            <td><span style="color: var(--text-muted);">${escapeHtml(item.responsable || 'Sin asignar')}</span></td>
         `;
         tbody.appendChild(tr);
     });
