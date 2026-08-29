@@ -836,81 +836,89 @@ async function openIncidentModal(id) {
     document.getElementById('modalMeta').textContent = `ID ${item.id_original || '-'} · ${formatDate(item.fecha_creacion)} · ${item.hotel || 'Sin hotel'}`;
     document.getElementById('modalTitle').textContent = `${item.tipo || 'Incidencia'} - ${item.departamento || 'General'}`;
     document.getElementById('modalBody').innerHTML = `
-        <section class="case-summary">
-            <div>
-                <span>Centro</span>
-                <strong>${escapeHtml(item.hotel || '-')}</strong>
-            </div>
-            <div>
-                <span>Tipo</span>
-                <strong>${escapeHtml(item.tipo || '-')}</strong>
-            </div>
-            <div>
-                <span>Estado</span>
-                <strong>${escapeHtml(item.estado || 'Pendiente')}</strong>
-            </div>
-            <div>
-                <span>Responsable</span>
-                <strong>${escapeHtml(item.responsable || 'Sin asignar')}</strong>
-            </div>
-        </section>
+        <div class="modal-split">
+            <!-- Columna Izquierda: Detalles (Solo lectura) -->
+            <div class="modal-left">
+                <section class="case-summary">
+                    <div>
+                        <span>Centro</span>
+                        <strong>${escapeHtml(item.hotel || '-')}</strong>
+                    </div>
+                    <div>
+                        <span>Tipo</span>
+                        <strong>${escapeHtml(item.tipo || '-')}</strong>
+                    </div>
+                    <div>
+                        <span>Estado</span>
+                        <strong>${escapeHtml(item.estado || 'Pendiente')}</strong>
+                    </div>
+                    <div>
+                        <span>Responsable</span>
+                        <strong>${escapeHtml(item.responsable || 'Sin asignar')}</strong>
+                    </div>
+                </section>
 
-        <div class="detail-grid">
-            ${detailField('Fecha de registro', formatDateTime(item.fecha_creacion))}
-            ${detailField('Zona o servicio', item.departamento)}
-            ${detailField('Cliente', item.cliente)}
-            ${detailField('Registrado por', item.usuario_registro)}
-            ${detailField('Solicita respuesta', item.solicita_respuesta)}
-            ${detailField('Teléfono / correo de respuesta', [item.telefono, item.correo_respuesta].filter(Boolean).join(' · '))}
-            ${detailField('Correo de registro', item.correo)}
-            ${detailField('Descripción completa', item.descripcion, true)}
-            ${detailField('Solución inmediata', item.accion, true)}
-            ${detailField('Datos específicos', item.notas_internas, true)}
-            <div class="detail-field full">
-                <span class="detail-label">Adjuntos</span>
-                <div id="attachmentViewer" class="attachment-viewer"></div>
+                <div class="detail-grid">
+                    ${detailField('Fecha de registro', formatDateTime(item.fecha_creacion))}
+                    ${detailField('Zona o servicio', item.departamento)}
+                    ${detailField('Cliente', item.cliente)}
+                    ${detailField('Registrado por', item.usuario_registro)}
+                    ${detailField('Solicita respuesta', item.solicita_respuesta)}
+                    ${detailField('Teléfono / correo de respuesta', [item.telefono, item.correo_respuesta].filter(Boolean).join(' · '))}
+                    ${detailField('Correo de registro', item.correo)}
+                    ${detailField('Descripción completa', item.descripcion, true)}
+                    <div class="detail-field full">
+                        <span class="detail-label">Adjuntos</span>
+                        <div id="attachmentViewer" class="attachment-viewer"></div>
+                    </div>
+                </div>
             </div>
-            ${detailField('Fecha de finalización', formatDateTime(item.fecha_cierre), true)}
+
+            <!-- Columna Derecha: Panel de Gestión -->
+            <div class="modal-right">
+                <form id="receptionManagementForm" class="reception-management" style="margin:0; padding:0; background:transparent; border:none; box-shadow:none;">
+                    <span class="section-kicker">Panel de Gestión</span>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Actualice el progreso, asigne responsable y documente las acciones.</p>
+                    
+                    <div class="form-grid" style="display:flex; flex-direction:column; gap:1rem;">
+                        <label class="full">
+                            <span>Estado actual</span>
+                            <select id="manageEstado" style="font-weight: bold; font-size: 1rem; color: var(--primary);">
+                                <option value="Pendiente" ${item.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                                <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+                                <option value="Cerrado" ${item.estado === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
+                            </select>
+                        </label>
+                        <label class="full">
+                            <span>Asignado a (Responsable)</span>
+                            <input id="manageResponsable" type="text" value="${escapeHtml(item.responsable || '')}" placeholder="Mantenimiento, Recepción...">
+                        </label>
+                        <label class="full">
+                            <span>Acción inmediata / Primera respuesta</span>
+                            <textarea id="manageAccion" rows="2" placeholder="Qué se hizo al momento de la incidencia...">${escapeHtml(item.accion || '')}</textarea>
+                        </label>
+                        <label class="full">
+                            <span>Gestión de Dirección / Seguimiento</span>
+                            <textarea id="manageGestionDireccion" rows="3" placeholder="Pasos dados para resolver el problema a fondo...">${escapeHtml(item.gestion_direccion || item.notas_internas || '')}</textarea>
+                        </label>
+                        <label class="full">
+                            <span>Resolución Final</span>
+                            <textarea id="manageResolucion" rows="2" placeholder="Cómo ha quedado resuelto el caso...">${escapeHtml(item.resolucion || '')}</textarea>
+                        </label>
+                        <label class="full">
+                            <span>Fecha de cierre</span>
+                            <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}">
+                        </label>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <form id="receptionManagementForm" class="reception-management">
-            <div>
-                <span class="section-kicker">Gestión desde recepción</span>
-                <p>Complete estos campos cuando se contacte con el cliente, se derive al departamento correspondiente o se cierre la incidencia.</p>
-            </div>
-            <div class="form-grid">
-                <label>
-                    <span>Estado</span>
-                    <select id="manageEstado">
-                        <option value="Pendiente" ${item.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                        <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
-                        <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
-                        <option value="Cerrado" ${item.estado === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Responsable</span>
-                    <input id="manageResponsable" type="text" value="${escapeHtml(item.responsable || '')}" placeholder="Recepción, mantenimiento, dirección...">
-                </label>
-                <label class="full">
-                    <span>Actuación realizada</span>
-                    <textarea id="manageAccion" rows="3" placeholder="Indique qué se ha hecho, a quién se ha avisado y qué queda pendiente.">${escapeHtml(item.accion || '')}</textarea>
-                </label>
-                <label class="full">
-                    <span>Notas internas de seguimiento</span>
-                    <textarea id="manageNotas" rows="3" placeholder="Añada llamadas, comprobaciones, respuesta del cliente o próximos pasos.">${escapeHtml(item.notas_internas || '')}</textarea>
-                </label>
-                <label>
-                    <span>Fecha de cierre</span>
-                    <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}">
-                </label>
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar gestión
-                </button>
-            </div>
-        </form>
     `;
 
     const modal = document.getElementById('incidentModal');
@@ -938,7 +946,9 @@ function saveReceptionManagement(event) {
     item.estado = document.getElementById('manageEstado').value;
     item.responsable = document.getElementById('manageResponsable').value.trim();
     item.accion = document.getElementById('manageAccion').value.trim();
-    item.notas_internas = document.getElementById('manageNotas').value.trim();
+    item.gestion_direccion = document.getElementById('manageGestionDireccion').value.trim();
+    item.notas_internas = item.gestion_direccion; // Retrocompatibilidad
+    item.resolucion = document.getElementById('manageResolucion').value.trim();
     item.fecha_cierre = document.getElementById('manageFechaCierre').value || '';
     item.fecha_ultima_gestion = new Date().toISOString();
 
@@ -950,7 +960,9 @@ function saveReceptionManagement(event) {
             estado: item.estado,
             responsable: item.responsable,
             accion: item.accion,
+            gestion_direccion: item.gestion_direccion,
             notas_internas: item.notas_internas,
+            resolucion: item.resolucion,
             fecha_cierre: item.fecha_cierre,
             fecha_ultima_gestion: item.fecha_ultima_gestion
         }).catch(console.error);

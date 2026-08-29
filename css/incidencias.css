@@ -1177,3 +1177,11 @@ body.dark-mode { --primary: #238962; --primary-hover: #31a67a; --background: #12
 .view-section { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+
+/* Modal Split Layout */
+.modal-split { display: grid; grid-template-columns: 2fr 1.2fr; gap: 2rem; align-items: start; }
+@media (max-width: 900px) { .modal-split { grid-template-columns: 1fr; } }
+.modal-left { display: flex; flex-direction: column; gap: 1.5rem; }
+.modal-right { background: var(--surface); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1.25rem; }
+.modal-right .section-kicker { margin-bottom: 0.5rem; display: block; }
+
