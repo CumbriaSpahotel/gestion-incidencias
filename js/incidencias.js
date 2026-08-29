@@ -10,7 +10,7 @@ const CONFIG = {
 let STATE = {
     incidencias: [],
     lastUpdate: null,
-    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'all' }
+    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente' }
 };
 
 window.refreshIntervalId = null;
