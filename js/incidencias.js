@@ -644,6 +644,7 @@ function renderDashboard() {
     renderKPIs();
     renderOperations();
     renderTable();
+    if (typeof renderKanban === 'function') renderKanban();
     renderCharts();
     renderAnalysis();
     populateSelects();
@@ -658,16 +659,31 @@ function renderKPIs() {
 }
 
 function renderOperations() {
-    const openItems = STATE.incidencias.filter(isOpenIncident);
-    const noOwner = openItems.filter(item => !(item.responsable || '').trim()).length;
-    const topArea = getTopMetric(openItems, item => item.departamento || 'General');
+    const active = STATE.incidencias.filter(isOpenIncident);
+    
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const oldPending = active.filter(x => new Date(x.fecha_creacion) < threeDaysAgo).length;
+    const oldElement = document.getElementById('opsOldPending');
+    if(oldElement) oldElement.innerText = oldPending;
 
-    document.getElementById('opsAttention').innerText = openItems.length;
-    document.getElementById('opsNoOwner').innerText = noOwner;
-    document.getElementById('opsTopArea').innerText = topArea.label;
-    document.getElementById('opsTopAreaDetail').innerText = topArea.count
-        ? `${topArea.count} registros abiertos en esta zona.`
-        : 'Sin datos pendientes.';
+    const noOwner = active.filter(x => !x.responsable || x.responsable.trim() === '').length;
+    const noOwnerElement = document.getElementById('opsNoOwner');
+    if(noOwnerElement) noOwnerElement.innerText = noOwner;
+
+    const ownerCounts = {};
+    active.forEach(item => {
+        const owner = item.responsable ? item.responsable.trim() : 'Sin asignar';
+        ownerCounts[owner] = (ownerCounts[owner] || 0) + 1;
+    });
+    
+    const ownerDetails = Object.entries(ownerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([owner, count]) => `<div style="display:flex; justify-content:space-between; padding:0.2rem 0; border-bottom:1px solid var(--border);"><span>${escapeHtml(owner)}</span><strong>${count}</strong></div>`)
+        .join('');
+        
+    const detailElement = document.getElementById('opsTopOwnerDetail');
+    if(detailElement) detailElement.innerHTML = ownerDetails || '<span>No hay carga pendiente.</span>';
 }
 
 function renderTable() {

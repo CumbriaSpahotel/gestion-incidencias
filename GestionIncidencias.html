@@ -38,7 +38,7 @@
             </div>
 
             <ul class="nav-menu">
-                <li class="nav-item active" data-view="dashboard">
+                <li class="nav-item" data-view="dashboard">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Dashboard</span>
                 </li>
@@ -46,9 +46,13 @@
                     <i class="fa-solid fa-plus"></i>
                     <span>Nueva incidencia</span>
                 </li>
+                <li class="nav-item" data-view="kanban">
+                    <i class="fa-solid fa-border-all"></i>
+                    <span>Tablero Kanban</span>
+                </li>
                 <li class="nav-item" data-view="incidents">
                     <i class="fa-solid fa-list-check"></i>
-                    <span>Incidencias</span>
+                    <span>Incidencias (Tabla)</span>
                 </li>
                 <li class="nav-item" data-view="analysis">
                     <i class="fa-solid fa-chart-line"></i>
@@ -59,7 +63,6 @@
                     <span>Modo oscuro</span>
                 </li>
             </ul>
-
         </aside>
 
         <!-- Main Content -->
@@ -73,24 +76,12 @@
                 </div>
 
                 <div class="actions" style="display: flex; gap: 0.5rem;">
-                    <!-- Hidden File Input -->
                     <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-
-                    <button id="btnUpload" class="btn btn-secondary">
-                        <i class="fa-solid fa-file-import"></i> Importar Excel
-                    </button>
-                    <button id="btnNewIncident" class="btn btn-primary">
-                        <i class="fa-solid fa-plus"></i> Nueva incidencia
-                    </button>
-                    <button id="btnRefresh" class="btn btn-secondary">
-                        <i class="fa-solid fa-arrows-rotate"></i> Actualizar
-                    </button>
-                    <button id="btnReport" class="btn btn-secondary">
-                        <i class="fa-solid fa-file-lines"></i> Generar informe
-                    </button>
-                    <button id="btnExport" class="btn btn-primary">
-                        <i class="fa-solid fa-download"></i> Exportar
-                    </button>
+                    <button id="btnUpload" class="btn btn-secondary"><i class="fa-solid fa-file-import"></i> Importar Excel</button>
+                    <button id="btnNewIncident" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nueva incidencia</button>
+                    <button id="btnRefresh" class="btn btn-secondary"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+                    <button id="btnReport" class="btn btn-secondary"><i class="fa-solid fa-file-lines"></i> Generar informe</button>
+                    <button id="btnExport" class="btn btn-primary"><i class="fa-solid fa-download"></i> Exportar</button>
                 </div>
             </header>
 
@@ -117,8 +108,7 @@
                 <div class="card kpi-card">
                     <span class="kpi-title">Abiertas</span>
                     <span class="kpi-value" id="kpiAbiertas">0</span>
-                    <span class="kpi-trend trend-down"><i class="fa-solid fa-circle-exclamation"></i> Requieren
-                        atención</span>
+                    <span class="kpi-trend trend-down"><i class="fa-solid fa-circle-exclamation"></i> Requieren atención</span>
                 </div>
                 <div class="card kpi-card">
                     <span class="kpi-title">Cerradas</span>
@@ -134,19 +124,20 @@
 
             <section class="operations-grid">
                 <article class="card operation-card attention">
-                    <span class="kpi-title">Prioridad hoy</span>
-                    <strong id="opsAttention">0</strong>
-                    <p>Pendientes o en proceso sin resolver.</p>
+                    <span class="kpi-title" style="color:var(--danger)">🚨 Alerta: Más de 3 días</span>
+                    <strong id="opsOldPending">0</strong>
+                    <p>Incidencias bloqueadas o sin respuesta del equipo.</p>
                 </article>
                 <article class="card operation-card">
-                    <span class="kpi-title">Sin responsable</span>
+                    <span class="kpi-title" style="color:var(--warning)">⚠️ Sin responsable</span>
                     <strong id="opsNoOwner">0</strong>
-                    <p>Registros abiertos que necesitan asignación.</p>
+                    <p>Registros abiertos que necesitan asignación urgente.</p>
                 </article>
                 <article class="card operation-card">
-                    <span class="kpi-title">Más repetido</span>
-                    <strong id="opsTopArea">-</strong>
-                    <p id="opsTopAreaDetail">Sin datos suficientes.</p>
+                    <span class="kpi-title">👤 Carga Actual</span>
+                    <div id="opsTopOwnerDetail" style="margin-top: 0.5rem; font-size: 0.9rem; max-height: 80px; overflow-y: auto;">
+                        Calculando...
+                    </div>
                 </article>
             </section>
 
@@ -154,17 +145,42 @@
             <section class="charts-section">
                 <div class="card">
                     <h3 class="kpi-title" style="margin-bottom: 1rem;">Evolución Mensual</h3>
-                    <div class="chart-container">
-                        <canvas id="chartTendencias"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="chartTendencias"></canvas></div>
                 </div>
                 <div class="card">
                     <h3 class="kpi-title" style="margin-bottom: 1rem;">Por Hotel</h3>
-                    <div class="chart-container">
-                        <canvas id="chartIncidenciasHotel"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="chartIncidenciasHotel"></canvas></div>
                 </div>
             </section>
+            </section>
+
+            <!-- Kanban Section -->
+            <section id="kanbanSection" class="view-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Gestión Visual</span>
+                        <h2>Tablero Kanban</h2>
+                    </div>
+                    <p>Arrastra las tarjetas para cambiar su estado rápidamente.</p>
+                </div>
+                <div class="kanban-board">
+                    <div class="kanban-column" data-status="Pendiente">
+                        <h3>Pendiente <span class="badge badge-pendiente count">0</span></h3>
+                        <div class="kanban-cards"></div>
+                    </div>
+                    <div class="kanban-column" data-status="En proceso">
+                        <h3>En proceso <span class="badge badge-proceso count">0</span></h3>
+                        <div class="kanban-cards"></div>
+                    </div>
+                    <div class="kanban-column" data-status="Resuelto">
+                        <h3>Resuelto <span class="badge badge-resuelto count">0</span></h3>
+                        <div class="kanban-cards"></div>
+                    </div>
+                    <div class="kanban-column" data-status="Cerrado">
+                        <h3>Cerrado <span class="badge badge-cerrado count">0</span></h3>
+                        <div class="kanban-cards"></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Operational Table -->
