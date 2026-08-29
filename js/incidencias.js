@@ -18,6 +18,7 @@ window.refreshIntervalId = null;
 // Charts Variables (Global)
 let chartByHotel = null;
 let chartTrend = null;
+let currentModalIncidentId = null;
 
 // IndexedDB Helper for Persistent File Handle
 const DB_NAME = 'IncidenciasFilesDB';
@@ -772,14 +773,32 @@ function detailField(label, value, full = false) {
 async function openIncidentModal(id) {
     const item = STATE.incidencias.find(x => x.id === id);
     if (!item) return;
+    currentModalIncidentId = id;
 
     document.getElementById('modalMeta').textContent = `ID ${item.id_original || '-'} · ${formatDate(item.fecha_creacion)} · ${item.hotel || 'Sin hotel'}`;
     document.getElementById('modalTitle').textContent = `${item.tipo || 'Incidencia'} - ${item.departamento || 'General'}`;
     document.getElementById('modalBody').innerHTML = `
+        <section class="case-summary">
+            <div>
+                <span>Centro</span>
+                <strong>${escapeHtml(item.hotel || '-')}</strong>
+            </div>
+            <div>
+                <span>Tipo</span>
+                <strong>${escapeHtml(item.tipo || '-')}</strong>
+            </div>
+            <div>
+                <span>Estado</span>
+                <strong>${escapeHtml(item.estado || 'Pendiente')}</strong>
+            </div>
+            <div>
+                <span>Responsable</span>
+                <strong>${escapeHtml(item.responsable || 'Sin asignar')}</strong>
+            </div>
+        </section>
+
         <div class="detail-grid">
-            ${detailField('Hotel', item.hotel)}
             ${detailField('Fecha de registro', formatDateTime(item.fecha_creacion))}
-            ${detailField('Tipo', item.tipo)}
             ${detailField('Zona o servicio', item.departamento)}
             ${detailField('Cliente', item.cliente)}
             ${detailField('Registrado por', item.usuario_registro)}
@@ -795,11 +814,51 @@ async function openIncidentModal(id) {
             </div>
             ${detailField('Fecha de finalización', formatDateTime(item.fecha_cierre), true)}
         </div>
+
+        <form id="receptionManagementForm" class="reception-management">
+            <div>
+                <span class="section-kicker">Gestión desde recepción</span>
+                <p>Complete estos campos cuando se contacte con el cliente, se derive al departamento correspondiente o se cierre la incidencia.</p>
+            </div>
+            <div class="form-grid">
+                <label>
+                    <span>Estado</span>
+                    <select id="manageEstado">
+                        <option value="Pendiente" ${item.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                        <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                        <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+                        <option value="Cerrado" ${item.estado === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Responsable</span>
+                    <input id="manageResponsable" type="text" value="${escapeHtml(item.responsable || '')}" placeholder="Recepción, mantenimiento, dirección...">
+                </label>
+                <label class="full">
+                    <span>Actuación realizada</span>
+                    <textarea id="manageAccion" rows="3" placeholder="Indique qué se ha hecho, a quién se ha avisado y qué queda pendiente.">${escapeHtml(item.accion || '')}</textarea>
+                </label>
+                <label class="full">
+                    <span>Notas internas de seguimiento</span>
+                    <textarea id="manageNotas" rows="3" placeholder="Añada llamadas, comprobaciones, respuesta del cliente o próximos pasos.">${escapeHtml(item.notas_internas || '')}</textarea>
+                </label>
+                <label>
+                    <span>Fecha de cierre</span>
+                    <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}">
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar gestión
+                </button>
+            </div>
+        </form>
     `;
 
     const modal = document.getElementById('incidentModal');
     modal.classList.add('active');
     modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('receptionManagementForm').addEventListener('submit', saveReceptionManagement);
     await renderIncidentAttachments(item);
 }
 
@@ -807,9 +866,29 @@ function closeIncidentModal() {
     const modal = document.getElementById('incidentModal');
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden', 'true');
+    currentModalIncidentId = null;
     document.querySelectorAll('[data-object-url]').forEach(element => {
         URL.revokeObjectURL(element.dataset.objectUrl);
     });
+}
+
+function saveReceptionManagement(event) {
+    event.preventDefault();
+    const item = STATE.incidencias.find(x => x.id === currentModalIncidentId);
+    if (!item) return;
+
+    item.estado = document.getElementById('manageEstado').value;
+    item.responsable = document.getElementById('manageResponsable').value.trim();
+    item.accion = document.getElementById('manageAccion').value.trim();
+    item.notas_internas = document.getElementById('manageNotas').value.trim();
+    item.fecha_cierre = document.getElementById('manageFechaCierre').value || '';
+    item.fecha_ultima_gestion = new Date().toISOString();
+
+    STATE.lastUpdate = new Date();
+    saveState();
+    renderDashboard();
+    showToast('Gestión guardada', 'success');
+    openIncidentModal(item.id);
 }
 
 function switchView(view) {
@@ -965,6 +1044,12 @@ window.updateResponsable = function (id, v) { const i = STATE.incidencias.find(x
 function getBadgeClass(s) { return ({ 'Pendiente': 'badge-pendiente', 'En proceso': 'badge-proceso', 'Resuelto': 'badge-resuelto', 'Cerrado': 'badge-cerrado' }[s] || 'badge-cerrado'); }
 function formatDate(d) { return (!d || isNaN(new Date(d))) ? '-' : new Date(d).toLocaleDateString('es-ES'); }
 function formatDateTime(d) { return (!d || isNaN(new Date(d))) ? '-' : new Date(d).toLocaleString('es-ES'); }
+function formatDateTimeInput(d) {
+    if (!d || isNaN(new Date(d))) return '';
+    const date = new Date(d);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 16);
+}
 function formatBytes(bytes) {
     if (!bytes) return '0 KB';
     const units = ['B', 'KB', 'MB', 'GB'];
