@@ -221,6 +221,41 @@ body {
     font-size: 1rem;
 }
 
+.entry-guide {
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #d7e7dd;
+    border-left: 4px solid var(--primary);
+    border-radius: 0.75rem;
+    background: #f7fbf8;
+}
+
+.entry-guide > div {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+}
+
+.entry-guide i {
+    margin-top: 0.15rem;
+    color: var(--primary);
+    font-size: 1.05rem;
+}
+
+.entry-guide strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--primary);
+    font-size: 0.98rem;
+}
+
+.entry-guide p {
+    max-width: 980px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
 .summary-centers {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
