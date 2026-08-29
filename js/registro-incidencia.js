@@ -148,6 +148,10 @@ async function saveIncident(event) {
     state.items.unshift(item);
     state.lastUpdate = now;
     saveState(state);
+    
+    if (typeof db !== 'undefined') {
+        db.collection('incidencias').doc(item.id).set(item).catch(console.error);
+    }
     updateCurrentTotal();
     showMessage(`Incidencia ${item.id_original} guardada correctamente.`);
     document.getElementById('standaloneIncidentForm').reset();

@@ -160,6 +160,25 @@ function initLocalState() {
             renderDashboard();
         } catch (e) { console.error(e); }
     }
+
+    // FIREBASE SYNC: Listen for real-time updates from Firestore
+    if (typeof db !== 'undefined') {
+        db.collection('incidencias').onSnapshot((snapshot) => {
+            const firebaseItems = [];
+            snapshot.forEach((doc) => {
+                firebaseItems.push({ ...doc.data(), id: doc.id });
+            });
+            // Overwrite state with Firebase data
+            if (firebaseItems.length > 0 || snapshot.docs.length === 0) {
+                STATE.incidencias = firebaseItems;
+                STATE.lastUpdate = new Date().toISOString();
+                updateLastUpdateUI();
+                renderDashboard();
+            }
+        }, (error) => {
+            console.error("Error fetching from Firebase:", error);
+        });
+    }
 }
 
 function setupEventListeners() {
@@ -886,6 +905,18 @@ function saveReceptionManagement(event) {
 
     STATE.lastUpdate = new Date();
     saveState();
+    
+    if (typeof db !== 'undefined') {
+        db.collection('incidencias').doc(item.id).update({
+            estado: item.estado,
+            responsable: item.responsable,
+            accion: item.accion,
+            notas_internas: item.notas_internas,
+            fecha_cierre: item.fecha_cierre,
+            fecha_ultima_gestion: item.fecha_ultima_gestion
+        }).catch(console.error);
+    }
+    
     renderDashboard();
     showToast('Gestión guardada', 'success');
     openIncidentModal(item.id);
@@ -997,6 +1028,11 @@ function handleIncidentFormSubmit(event) {
     STATE.incidencias.unshift(item);
     STATE.lastUpdate = now;
     saveState();
+    
+    if (typeof db !== 'undefined') {
+        db.collection('incidencias').doc(item.id).set(item).catch(console.error);
+    }
+    
     renderDashboard();
     closeIncidentFormModal();
     showToast('Incidencia guardada', 'success');
@@ -1038,8 +1074,23 @@ function renderCharts() {
     });
 }
 
-window.updateStatus = function (id, v) { const i = STATE.incidencias.find(x => x.id === id); if (i) { i.estado = v; saveState(); renderDashboard(); } };
-window.updateResponsable = function (id, v) { const i = STATE.incidencias.find(x => x.id === id); if (i) { i.responsable = v; saveState(); } };
+window.updateStatus = function (id, v) { 
+    const i = STATE.incidencias.find(x => x.id === id); 
+    if (i) { 
+        i.estado = v; 
+        saveState(); 
+        if (typeof db !== 'undefined') db.collection('incidencias').doc(id).update({ estado: v }).catch(console.error);
+        renderDashboard(); 
+    } 
+};
+window.updateResponsable = function (id, v) { 
+    const i = STATE.incidencias.find(x => x.id === id); 
+    if (i) { 
+        i.responsable = v; 
+        saveState(); 
+        if (typeof db !== 'undefined') db.collection('incidencias').doc(id).update({ responsable: v }).catch(console.error);
+    } 
+};
 
 function getBadgeClass(s) { return ({ 'Pendiente': 'badge-pendiente', 'En proceso': 'badge-proceso', 'Resuelto': 'badge-resuelto', 'Cerrado': 'badge-cerrado' }[s] || 'badge-cerrado'); }
 function formatDate(d) { return (!d || isNaN(new Date(d))) ? '-' : new Date(d).toLocaleDateString('es-ES'); }
