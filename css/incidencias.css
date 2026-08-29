@@ -901,6 +901,14 @@ tr:hover td {
     font-size: 1.75rem;
 }
 
+.entry-stat small {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
 .save-message {
     display: none;
     margin-top: 1rem;

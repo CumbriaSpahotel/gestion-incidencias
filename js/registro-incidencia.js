@@ -58,6 +58,7 @@ function setupPickers() {
         button.addEventListener('click', () => {
             document.getElementById('formHotel').value = button.dataset.center;
             setActiveButton('.center-card', 'center', button.dataset.center);
+            updateCurrentTotal();
         });
     });
 
@@ -93,6 +94,7 @@ function updateRecordType(type) {
 
     const actionLabel = document.querySelector('#contextQueja label.full span');
     if (actionLabel) actionLabel.textContent = config.actionLabel;
+    updateCurrentTotal();
 }
 
 function loadState() {
@@ -262,7 +264,49 @@ function getNextLocalNumber(items) {
 }
 
 function updateCurrentTotal() {
-    document.getElementById('currentTotal').textContent = loadState().items.length;
+    const selectedCenter = valueOf('formHotel');
+    const selectedType = valueOf('formTipo');
+    const items = loadState().items;
+    const total = items.filter(item => (
+        matchesCenter(item.hotel, selectedCenter) && matchesType(item.tipo, selectedType)
+    )).length;
+    const centerLabel = getCenterLabel(selectedCenter);
+
+    document.getElementById('currentTotal').textContent = total;
+    document.getElementById('currentFilterText').textContent = `${centerLabel} · ${selectedType}`;
+}
+
+function matchesCenter(itemCenter, selectedCenter) {
+    const item = normalizeText(itemCenter);
+    const selected = normalizeText(selectedCenter);
+    if (!item || !selected) return false;
+
+    if (selected.includes('guadiana')) return item.includes('guadiana');
+    if (selected.includes('bienestar')) return item.includes('bienestar');
+    if (selected.includes('cumbria')) return item.includes('cumbria') && !item.includes('bienestar');
+    return item === selected;
+}
+
+function matchesType(itemType, selectedType) {
+    return normalizeText(itemType) === normalizeText(selectedType);
+}
+
+function getCenterLabel(center) {
+    const normalized = normalizeText(center);
+    if (normalized.includes('guadiana')) return 'Guadiana';
+    if (normalized.includes('bienestar')) return 'Cumbria Bienestar';
+    if (normalized.includes('cumbria')) return 'Cumbria Hotel';
+    return center || 'Centro';
+}
+
+function normalizeText(value) {
+    return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
 }
 
 function showMessage(message) {
