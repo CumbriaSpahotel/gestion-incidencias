@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Incidencias | Hoteles</title>
+    <title>Q-Centros | Gestión de Incidencias</title>
+    <link rel="icon" type="image/png" href="assets/q-centros-icon.png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,15 +29,22 @@
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fa-solid fa-hotel"></i>
-                <span>HotelManager</span>
+            <div class="app-brand">
+                <img src="assets/q-centros-icon.png" alt="">
+                <div>
+                    <strong>Q-Centros</strong>
+                    <span>Calidad e incidencias</span>
+                </div>
             </div>
 
             <ul class="nav-menu">
                 <li class="nav-item active">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Dashboard</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='RegistroIncidencia.html'">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nueva incidencia</span>
                 </li>
                 <li class="nav-item">
                     <i class="fa-solid fa-list-check"></i>
@@ -46,11 +54,8 @@
                     <i class="fa-solid fa-chart-line"></i>
                     <span>Análisis</span>
                 </li>
-                <li class="nav-item">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Configuración</span>
-                </li>
             </ul>
+
         </aside>
 
         <!-- Main Content -->
@@ -58,8 +63,9 @@
             <!-- Header -->
             <header class="header">
                 <div class="page-title">
-                    <h1>Panel de Incidencias</h1>
-                    <span id="lastUpdateText" class="last-update">Sincronizando...</span>
+                    <span class="eyebrow">Q-Centros</span>
+                    <h1>Panel de incidencias</h1>
+                    <span id="lastUpdateText" class="last-update">Sistema autónomo</span>
                 </div>
 
                 <div class="actions" style="display: flex; gap: 0.5rem;">
@@ -67,13 +73,10 @@
                     <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
 
                     <button id="btnUpload" class="btn btn-secondary">
-                        <i class="fa-solid fa-upload"></i> Cargar Local
+                        <i class="fa-solid fa-file-import"></i> Importar Excel
                     </button>
                     <button id="btnNewIncident" class="btn btn-primary">
                         <i class="fa-solid fa-plus"></i> Nueva incidencia
-                    </button>
-                    <button id="btnConfig" class="btn btn-secondary">
-                        <i class="fa-solid fa-link"></i> Config URL
                     </button>
                     <button id="btnRefresh" class="btn btn-secondary">
                         <i class="fa-solid fa-arrows-rotate"></i> Actualizar
@@ -84,12 +87,24 @@
                 </div>
             </header>
 
+            <section class="workspace-summary">
+                <div>
+                    <span>Aplicación autónoma</span>
+                    <strong>Registro común para Hotel Guadiana, Cumbria Hotel y Cumbria Bienestar.</strong>
+                </div>
+                <div class="summary-centers">
+                    <img src="assets/logo-guadiana.jpg" alt="Hotel Guadiana">
+                    <img src="assets/logo-cumbria-hotel.jpg" alt="Cumbria Hotel">
+                    <img src="assets/logo-cumbria-bienestar.jpg" alt="Cumbria Bienestar">
+                </div>
+            </section>
+
             <!-- KPI Grid -->
             <section class="kpi-grid">
                 <div class="card kpi-card">
                     <span class="kpi-title">Total Registrados</span>
                     <span class="kpi-value" id="kpiTotal">0</span>
-                    <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Historico</span>
+                    <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Histórico</span>
                 </div>
                 <div class="card kpi-card">
                     <span class="kpi-title">Abiertas</span>
@@ -199,6 +214,7 @@
                         <select id="formHotel" required>
                             <option value="Secotel Guadiana">Secotel Guadiana</option>
                             <option value="Cumbria Spa&Hotel">Cumbria Spa&Hotel</option>
+                            <option value="Cumbria Bienestar">Cumbria Bienestar</option>
                         </select>
                     </label>
                     <label>

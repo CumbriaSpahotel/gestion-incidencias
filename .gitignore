@@ -3,4 +3,4 @@
 *.docx
 .tmp_*/
 desktop.ini
-
+.*-preview.png

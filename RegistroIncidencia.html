@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nueva Incidencia | Hoteles</title>
+    <title>Q-Centros | Nueva Incidencia</title>
+    <link rel="icon" type="image/png" href="assets/q-centros-icon.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,9 +17,12 @@
 <body>
     <div class="app-container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fa-solid fa-hotel"></i>
-                <span>HotelManager</span>
+            <div class="app-brand">
+                <img src="assets/q-centros-icon.png" alt="">
+                <div>
+                    <strong>Q-Centros</strong>
+                    <span>Calidad e incidencias</span>
+                </div>
             </div>
 
             <ul class="nav-menu">
@@ -31,13 +35,15 @@
                     <span>Nueva incidencia</span>
                 </li>
             </ul>
+
         </aside>
 
         <main class="main-content">
             <header class="header">
                 <div class="page-title">
+                    <span class="eyebrow">Q-Centros</span>
                     <h1>Nueva incidencia</h1>
-                    <span class="last-update">Registro autónomo sin Microsoft Forms</span>
+                    <span class="last-update">Registro común para los tres centros</span>
                 </div>
 
                 <div class="actions">
@@ -49,23 +55,56 @@
 
             <section class="entry-layout">
                 <form id="standaloneIncidentForm" class="card standalone-form">
-                    <div class="form-grid">
-                        <label>
-                            <span>Hotel</span>
-                            <select id="formHotel" required>
-                                <option value="Secotel Guadiana">Secotel Guadiana</option>
-                                <option value="Cumbria Spa&Hotel">Cumbria Spa&Hotel</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Tipo</span>
-                            <select id="formTipo" required>
-                                <option value="Queja">Queja</option>
-                                <option value="Sugerencia">Sugerencia</option>
-                                <option value="Incidencia">Incidencia</option>
-                                <option value="Reclamación">Reclamación</option>
-                            </select>
-                        </label>
+                    <input id="formHotel" type="hidden" value="Secotel Guadiana">
+                    <input id="formTipo" type="hidden" value="Queja">
+
+                    <div class="form-section">
+                        <span class="section-kicker">Centro</span>
+                        <div class="center-picker" role="radiogroup" aria-label="Centro">
+                            <button class="center-card active" type="button" data-center="Secotel Guadiana">
+                                <img src="assets/logo-guadiana.jpg" alt="Hotel Guadiana">
+                                <span>Guadiana</span>
+                            </button>
+                            <button class="center-card" type="button" data-center="Cumbria Spa&Hotel">
+                                <img src="assets/logo-cumbria-hotel.jpg" alt="Cumbria Hotel">
+                                <span>Cumbria Hotel</span>
+                            </button>
+                            <button class="center-card" type="button" data-center="Cumbria Bienestar">
+                                <img src="assets/logo-cumbria-bienestar.jpg" alt="Cumbria Bienestar">
+                                <span>Cumbria Bienestar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <span class="section-kicker">Tipo de registro</span>
+                        <div class="type-picker" role="radiogroup" aria-label="Tipo de registro">
+                            <button class="type-card active" type="button" data-type="Queja">
+                                <i class="fa-solid fa-comment-dots"></i>
+                                <strong>Queja</strong>
+                                <span>Malestar por servicio recibido</span>
+                            </button>
+                            <button class="type-card" type="button" data-type="Reclamación">
+                                <i class="fa-solid fa-file-signature"></i>
+                                <strong>Reclamación</strong>
+                                <span>Requiere respuesta o trazabilidad formal</span>
+                            </button>
+                            <button class="type-card" type="button" data-type="Incidencia">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <strong>Incidencia</strong>
+                                <span>Riesgo operativo, legal o de seguridad</span>
+                            </button>
+                            <button class="type-card" type="button" data-type="Sugerencia">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                <strong>Sugerencia</strong>
+                                <span>Propuesta de mejora</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <span class="section-kicker">Datos básicos</span>
+                        <div class="form-grid">
                         <label>
                             <span>Zona o servicio</span>
                             <input id="formDepartamento" type="text" placeholder="Habitaciones, buffet, parking..." required>
@@ -74,34 +113,115 @@
                             <span>Registrado por</span>
                             <input id="formUsuario" type="text" placeholder="Nombre">
                         </label>
-                        <label>
-                            <span>Cliente</span>
-                            <input id="formCliente" type="text" placeholder="Nombre del cliente">
-                        </label>
-                        <label>
-                            <span>Solicita respuesta</span>
-                            <select id="formSolicitaRespuesta">
-                                <option value="">Sin indicar</option>
-                                <option value="Sí">Sí</option>
-                                <option value="No">No</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Teléfono</span>
-                            <input id="formTelefono" type="text" placeholder="Opcional">
-                        </label>
-                        <label>
-                            <span>Correo de respuesta</span>
-                            <input id="formCorreoRespuesta" type="email" placeholder="Opcional">
-                        </label>
                         <label class="full">
-                            <span>Descripción</span>
+                            <span id="descriptionLabel">Descripción de la queja</span>
                             <textarea id="formDescripcion" rows="7" placeholder="Describe qué ha ocurrido, quién lo comunicó, cuándo, dónde y cualquier dato relevante." required></textarea>
                         </label>
-                        <label class="full">
-                            <span>Solución inmediata</span>
-                            <textarea id="formAccion" rows="4" placeholder="Indica si se ha dado una solución o qué acción queda pendiente."></textarea>
-                        </label>
+                        </div>
+                    </div>
+
+                    <div id="contextQueja" class="context-panel active" data-context="Queja">
+                        <span class="section-kicker">Atención al cliente</span>
+                        <div class="form-grid">
+                            <label>
+                                <span>Cliente</span>
+                                <input id="formCliente" type="text" placeholder="Nombre del cliente">
+                            </label>
+                            <label>
+                                <span>Canal de recepción</span>
+                                <select id="formCanal">
+                                    <option value="">Sin indicar</option>
+                                    <option value="Recepción">Recepción</option>
+                                    <option value="Teléfono">Teléfono</option>
+                                    <option value="Correo">Correo</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Departamento">Departamento</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Solicita respuesta</span>
+                                <select id="formSolicitaRespuesta">
+                                    <option value="">Sin indicar</option>
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Teléfono</span>
+                                <input id="formTelefono" type="text" placeholder="Opcional">
+                            </label>
+                            <label>
+                                <span>Correo de respuesta</span>
+                                <input id="formCorreoRespuesta" type="email" placeholder="Opcional">
+                            </label>
+                            <label>
+                                <span>Compensación ofrecida</span>
+                                <input id="formCompensacion" type="text" placeholder="Cambio, detalle, disculpas...">
+                            </label>
+                            <label class="full">
+                                <span>Solución inmediata</span>
+                                <textarea id="formAccion" rows="3" placeholder="Indica la respuesta dada al cliente o qué queda pendiente."></textarea>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="contextIncidencia" class="context-panel" data-context="Incidencia">
+                        <span class="section-kicker">Riesgo y seguimiento</span>
+                        <div class="form-grid">
+                            <label>
+                                <span>Gravedad</span>
+                                <select id="formGravedad">
+                                    <option value="">Sin indicar</option>
+                                    <option value="Baja">Baja</option>
+                                    <option value="Media">Media</option>
+                                    <option value="Alta">Alta</option>
+                                    <option value="Crítica">Crítica</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Requiere cierre formal</span>
+                                <select id="formCierreFormal">
+                                    <option value="">Sin indicar</option>
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Responsable inicial</span>
+                                <input id="formResponsableInicial" type="text" placeholder="Mantenimiento, F&B, Recepción...">
+                            </label>
+                            <label>
+                                <span>Cliente afectado</span>
+                                <input id="formClienteIncidencia" type="text" placeholder="Opcional">
+                            </label>
+                            <label class="full">
+                                <span>Medida inmediata</span>
+                                <textarea id="formAccionIncidencia" rows="4" placeholder="Retirada de servicio, parte a mantenimiento, cambio de habitación, aviso a dirección..."></textarea>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="contextSugerencia" class="context-panel" data-context="Sugerencia">
+                        <span class="section-kicker">Propuesta de mejora</span>
+                        <div class="form-grid">
+                            <label>
+                                <span>Área de mejora</span>
+                                <input id="formAreaMejora" type="text" placeholder="Instalaciones, desayuno, comunicación...">
+                            </label>
+                            <label>
+                                <span>Prioridad sugerida</span>
+                                <select id="formPrioridadSugerida">
+                                    <option value="">Sin indicar</option>
+                                    <option value="Baja">Baja</option>
+                                    <option value="Media">Media</option>
+                                    <option value="Alta">Alta</option>
+                                </select>
+                            </label>
+                            <label class="full">
+                                <span>Beneficio esperado</span>
+                                <textarea id="formBeneficio" rows="3" placeholder="Qué mejora aportaría al cliente, al centro o a la operativa."></textarea>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-actions">
@@ -115,8 +235,8 @@
                 </form>
 
                 <aside class="card entry-side-panel">
-                    <h2>Registro directo</h2>
-                    <p>Las incidencias guardadas aquí aparecen automáticamente en el panel principal y se incluyen al exportar a Excel.</p>
+                    <h2 id="sideTitle">Queja</h2>
+                    <p id="sideDescription">Use este registro cuando un cliente manifiesta malestar por un servicio recibido.</p>
                     <div class="entry-stat">
                         <span>Total actual</span>
                         <strong id="currentTotal">0</strong>

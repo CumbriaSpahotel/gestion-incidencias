@@ -154,7 +154,8 @@ function setupEventListeners() {
         pickLocalFile();
     });
 
-    document.getElementById('btnConfig').addEventListener('click', configureSourceUrl);
+    const configButton = document.getElementById('btnConfig');
+    if (configButton) configButton.addEventListener('click', configureSourceUrl);
     document.getElementById('btnNewIncident').addEventListener('click', () => {
         window.location.href = 'RegistroIncidencia.html';
     });
@@ -268,22 +269,24 @@ function showLocalModeUI() {
 
     const banner = document.createElement('div');
     banner.id = 'localModeBanner';
-    banner.style.cssText = 'background:#f0f9ff; color:#0369a1; padding:1rem; border-radius:0.5rem; margin-bottom:1rem; border:1px solid #bae6fd; display:flex; gap:1rem; align-items:center;';
+    banner.style.cssText = 'background:#f7fbf8; color:#24523f; padding:1rem; border-radius:0.75rem; margin-bottom:1rem; border:1px solid #d7e7dd; display:flex; gap:1rem; align-items:center;';
     banner.innerHTML = `
-        <i class="fa-solid fa-folder-open" style="font-size:1.5rem"></i>
+        <i class="fa-solid fa-circle-check" style="font-size:1.5rem"></i>
         <div style="flex:1">
-            <strong>Seleccione el Excel</strong><br>
+            <strong>Q-Centros funciona de forma autónoma</strong><br>
             <div style="font-size:0.875rem;">
-                Puede registrar incidencias desde la web o cargar un Excel local para importar datos existentes.
+                Registre nuevas incidencias desde la web o importe un Excel solo cuando necesite incorporar históricos.
             </div>
         </div>
-        <button class="btn btn-primary" id="btnOpenLocalFile" style="font-size:0.85rem">
-            <i class="fa-solid fa-file-excel"></i> Abrir Excel
+        <button class="btn btn-primary" id="btnCreateFromBanner" style="font-size:0.85rem">
+            <i class="fa-solid fa-plus"></i> Nueva incidencia
         </button>
     `;
     header.parentNode.insertBefore(banner, header.nextSibling);
-    document.getElementById('btnOpenLocalFile').addEventListener('click', pickLocalFile);
-    document.getElementById('lastUpdateText').innerText = 'Pendiente de Excel local';
+    document.getElementById('btnCreateFromBanner').addEventListener('click', () => {
+        window.location.href = 'RegistroIncidencia.html';
+    });
+    document.getElementById('lastUpdateText').innerText = 'Sistema autónomo';
 }
 
 // Legacy Handler
@@ -621,6 +624,7 @@ function openIncidentModal(id) {
             ${detailField('Correo de registro', item.correo)}
             ${detailField('Descripción completa', item.descripcion, true)}
             ${detailField('Solución inmediata', item.accion, true)}
+            ${detailField('Datos específicos', item.notas_internas, true)}
             ${detailField('Fecha de finalización', formatDateTime(item.fecha_cierre), true)}
         </div>
     `;

@@ -1,11 +1,11 @@
-# Gestión de incidencias
+# Q-Centros
 
-Web autónoma para registrar, consultar y exportar quejas, sugerencias e incidencias de hotel.
+Web autónoma para registrar, consultar y exportar quejas, sugerencias, incidencias y reclamaciones de Hotel Guadiana, Cumbria Hotel y Cumbria Bienestar.
 
 ## Páginas
 
 - `GestionIncidencias.html`: panel principal con indicadores, gráficos, tabla y detalle de incidencias.
-- `RegistroIncidencia.html`: formulario autónomo para crear nuevas incidencias sin Microsoft Forms.
+- `RegistroIncidencia.html`: formulario autónomo con campos adaptados por tipo de registro.
 
 ## Datos
 
