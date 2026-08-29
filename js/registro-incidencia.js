@@ -156,11 +156,8 @@ async function saveIncident(event) {
     updateRecordType('Queja');
     renderSelectedAttachments();
 
-    let notificationSent = false;
-    if (document.getElementById('formNotifyEmail').checked) {
-        notificationSent = await sendAutomaticNotification(item);
-    }
-    if (document.getElementById('formNotifyEmail').checked && NOTIFICATION_WEBHOOK_URL) {
+    const notificationSent = await sendAutomaticNotification(item);
+    if (NOTIFICATION_WEBHOOK_URL) {
         showMessage(notificationSent
             ? `Incidencia ${item.id_original} guardada y aviso enviado.`
             : `Incidencia ${item.id_original} guardada. No se pudo enviar el aviso automático.`);
