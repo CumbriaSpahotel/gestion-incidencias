@@ -1,7 +1,6 @@
 // Configuration
 const CONFIG = {
-    // Attempting 'download=1' for better auto-sync success
-    defaultUrl: "https://1drv.ms/x/c/7cdc5f6b199a606e/IQRMOC-3fVx8Qafod_zT0Y5SAUsnqOdE744Yt-JSIDDFR-I?download=1",
+    defaultUrl: "",
     localFileName: "1.4.2 Cuestionario de queja o sugerencia.xlsx",
     refreshInterval: 300000,
     dbName: 'incidencias_db'
@@ -92,14 +91,24 @@ function isFilePage() {
 }
 
 function canUseNetworkSync() {
-    return !isFilePage();
+    return Boolean(getConfiguredSourceUrl()) && !isFilePage();
 }
 
 function checkMigration() {
     const current = localStorage.getItem('source_url');
-    if (current && current.includes('IQRMOC') && current.includes('em=2')) {
+    if (isUnsupportedSourceUrl(current)) {
         localStorage.removeItem('source_url');
     }
+}
+
+function getConfiguredSourceUrl() {
+    const url = (localStorage.getItem('source_url') || CONFIG.defaultUrl || '').trim();
+    return isUnsupportedSourceUrl(url) ? '' : url;
+}
+
+function isUnsupportedSourceUrl(url) {
+    if (!url) return false;
+    return url.includes('1drv.ms/') || url.includes('onedrive.live.com/') || url.includes('forms.cloud.microsoft/');
 }
 
 function setupCharts() { renderCharts(); }
@@ -265,7 +274,7 @@ function showLocalModeUI() {
         <div style="flex:1">
             <strong>Seleccione el Excel</strong><br>
             <div style="font-size:0.875rem;">
-                Al abrir esta página desde una carpeta local, el navegador bloquea la descarga directa de OneDrive.
+                Puede registrar incidencias desde la web o cargar un Excel local para importar datos existentes.
             </div>
         </div>
         <button class="btn btn-primary" id="btnOpenLocalFile" style="font-size:0.85rem">
@@ -298,12 +307,18 @@ function handleFileUpload(e) {
 }
 
 function configureSourceUrl() {
-    const current = localStorage.getItem('source_url') || CONFIG.defaultUrl;
-    const next = prompt('Pegue la URL directa del Excel publicado para descarga. Si usa un archivo local, deje este campo vacío.', current);
+    const current = getConfiguredSourceUrl();
+    const next = prompt('Pegue una URL directa y pública del Excel. Los enlaces de OneDrive o Forms no funcionan aquí por seguridad del navegador. Si usa datos locales, deje este campo vacío.', current);
     if (next === null) return;
 
     const clean = next.trim();
     if (clean) {
+        if (isUnsupportedSourceUrl(clean)) {
+            localStorage.removeItem('source_url');
+            showLocalModeUI();
+            showToast("Ese enlace no se puede leer desde la web. Use Cargar Local o registre incidencias directamente.", "error");
+            return;
+        }
         localStorage.setItem('source_url', clean);
         fileHandle = null;
         if (canUseNetworkSync()) loadData();
@@ -321,8 +336,13 @@ async function loadData(silent = false) {
         return;
     }
 
+    const url = getConfiguredSourceUrl();
+    if (!url && !canTryBundledWorkbook()) {
+        showLocalModeUI();
+        return;
+    }
+
     if (!silent) showLoading(true);
-    const url = localStorage.getItem('source_url') || CONFIG.defaultUrl;
     try {
         let response = await tryLocalWorkbook();
         let loadedFromLocalWorkbook = Boolean(response);
@@ -368,7 +388,7 @@ async function loadData(silent = false) {
                 <div style="flex:1">
                      <strong>Modo Offline</strong><br>
                      <div style="font-size:0.875rem;">
-                        No se pudo conectar con OneDrive (Bloqueo de seguridad).<br>
+                        No se pudo cargar la fuente externa configurada.<br>
                         Use <strong>"Cargar Local"</strong> para trabajar con sus datos.
                      </div>
                 </div>
@@ -386,12 +406,17 @@ async function loadData(silent = false) {
 }
 
 async function tryLocalWorkbook() {
+    if (!canTryBundledWorkbook()) return null;
     try {
         const response = await fetch(CONFIG.localFileName, { cache: 'no-store' });
         return response.ok ? response : null;
     } catch (e) {
         return null;
     }
+}
+
+function canTryBundledWorkbook() {
+    return ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
 }
 
 function processWorkbook(workbook, successMsg) {
