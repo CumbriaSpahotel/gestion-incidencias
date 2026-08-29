@@ -186,6 +186,7 @@ function setupEventListeners() {
         else showLocalModeUI();
     });
 
+    document.getElementById('btnReport').addEventListener('click', generateManagementReport);
     document.getElementById('btnExport').addEventListener('click', exportToExcel);
 
     // Legacy File Input Fallback
@@ -985,6 +986,227 @@ function showLoading(s) {
     const el = document.getElementById('loadingOverlay'); if (el) el.classList.toggle('active', s);
 }
 function showToast(m, t) { console.log(m); }
+
+function generateManagementReport() {
+    const items = [...STATE.incidencias].sort((a, b) => new Date(a.fecha_creacion) - new Date(b.fecha_creacion));
+    if (!items.length) {
+        showToast('No hay datos para generar informe', 'error');
+        alert('No hay registros para generar el informe. Importe datos o cree una incidencia primero.');
+        return;
+    }
+
+    const reportDate = new Date();
+    const openItems = items.filter(isOpenIncident);
+    const closedItems = items.filter(item => ['Resuelto', 'Cerrado'].includes(item.estado));
+    const noAction = items.filter(item => !(item.accion || '').trim()).length;
+    const noResponse = items.filter(item => !(item.solicita_respuesta || '').trim()).length;
+    const byHotel = countBy(items, item => item.hotel || 'Sin centro');
+    const byType = countBy(items, item => item.tipo || 'Sin tipo');
+    const byArea = countBy(items, item => item.departamento || 'General');
+    const topHotel = getTopMetric(items, item => item.hotel || 'Sin centro');
+    const topType = getTopMetric(items, item => item.tipo || 'Sin tipo');
+    const topArea = getTopMetric(items, item => item.departamento || 'General');
+    const risks = getPriorityRisks(items);
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Informe para dirección</title>
+            <style>
+                @page { margin: 1.8cm; }
+                body { font-family: Arial, sans-serif; color: #18231f; line-height: 1.45; }
+                h1 { color: #145a3f; font-size: 26pt; margin: 0 0 6px; }
+                h2 { color: #145a3f; font-size: 16pt; margin: 24px 0 8px; border-bottom: 2px solid #d8a63a; padding-bottom: 4px; }
+                h3 { color: #24352e; font-size: 12pt; margin: 16px 0 6px; }
+                p { font-size: 10.5pt; margin: 6px 0; }
+                .subtitle { color: #66736d; font-size: 11pt; margin-bottom: 18px; }
+                .executive { background: #f3f8f5; border-left: 5px solid #145a3f; padding: 12px 14px; margin: 16px 0; }
+                table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 9.5pt; }
+                th { background: #145a3f; color: #ffffff; text-align: left; padding: 7px; }
+                td { border: 1px solid #dfe6e1; padding: 7px; vertical-align: top; }
+                .muted { color: #66736d; }
+                .pill { color: #991b1b; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h1>Informe para dirección</h1>
+            <p class="subtitle">Quejas, sugerencias, reclamaciones e incidencias · Q-Centros · Generado el ${escapeHtml(formatDateTime(reportDate))}</p>
+
+            <div class="executive">
+                <h2 style="margin-top:0;">Conclusión ejecutiva</h2>
+                <p>${buildExecutiveConclusion(items, openItems, topHotel, topType, topArea, noAction)}</p>
+            </div>
+
+            <h2>1. Resumen ejecutivo</h2>
+            <table>
+                <tr><th>Indicador</th><th>Resultado</th><th>Lectura para dirección</th></tr>
+                <tr><td>Registros analizados</td><td>${items.length}</td><td>Base actual registrada en el sistema.</td></tr>
+                <tr><td>Distribución por centro</td><td>${formatMetricSummary(byHotel, items.length)}</td><td>${escapeHtml(topHotel.label)} concentra el mayor volumen.</td></tr>
+                <tr><td>Tipo de registro</td><td>${formatMetricSummary(byType, items.length)}</td><td>${escapeHtml(topType.label)} es el tipo más repetido.</td></tr>
+                <tr><td>Registros abiertos</td><td>${openItems.length}</td><td>${openItems.length ? 'Requieren seguimiento hasta cierre.' : 'No constan registros pendientes.'}</td></tr>
+                <tr><td>Solución documentada</td><td>${items.length - noAction} con acción · ${noAction} sin acción</td><td>${noAction ? 'Debe reforzarse la trazabilidad de respuesta.' : 'La gestión aparece documentada.'}</td></tr>
+                <tr><td>Respuesta solicitada</td><td>${items.length - noResponse} informado · ${noResponse} en blanco</td><td>${noResponse ? 'Conviene completar este campo para medir obligaciones de contestación.' : 'Campo cumplimentado de forma homogénea.'}</td></tr>
+            </table>
+
+            <h2>2. Hallazgos principales</h2>
+            ${buildHotelFindings(byHotel, items)}
+
+            <h2>3. Distribución por áreas</h2>
+            ${buildMetricTable(byArea, items.length, 'Área o servicio')}
+
+            <h2>4. Riesgos que requieren actuación prioritaria</h2>
+            ${buildRiskTable(risks)}
+
+            <h2>5. Calidad de la gestión de incidencias</h2>
+            <p><strong>Debilidad de control:</strong> ${buildControlWeakness(items, noAction, noResponse)}</p>
+            <table>
+                <tr><th>Problema de registro</th><th>Impacto</th><th>Medida de control</th></tr>
+                <tr><td>Registros sin responsable</td><td>Dificulta saber quién debe cerrar la acción.</td><td>Asignar responsable antes de pasar el estado a “En proceso”.</td></tr>
+                <tr><td>Soluciones no documentadas</td><td>No permite verificar si el cliente quedó atendido.</td><td>Registrar acción realizada, fecha prevista y comprobación final.</td></tr>
+                <tr><td>Campos de respuesta incompletos</td><td>Puede perderse una contestación necesaria.</td><td>Marcar siempre si solicita respuesta y añadir teléfono o correo cuando proceda.</td></tr>
+            </table>
+
+            <h2>6. Plan de actuación recomendado</h2>
+            <table>
+                <tr><th>Plazo</th><th>Actuación</th><th>Responsable sugerido</th><th>Indicador de cierre</th></tr>
+                <tr><td>0-7 días</td><td>Revisar todos los registros pendientes y asignar responsable.</td><td>Dirección / Jefes de área</td><td>100% de incidencias abiertas con responsable.</td></tr>
+                <tr><td>0-7 días</td><td>Actuar sobre el foco más repetido: ${escapeHtml(topArea.label)}.</td><td>Responsable del servicio afectado</td><td>Acción correctiva definida y fecha de revisión.</td></tr>
+                <tr><td>7-30 días</td><td>Revisar recurrencias por centro y tipo de registro.</td><td>Dirección</td><td>Comparativa mensual con reducción de repetición.</td></tr>
+                <tr><td>Mensual</td><td>Emitir informe de seguimiento y validar cierres.</td><td>Dirección</td><td>Informe mensual archivado y acciones cerradas.</td></tr>
+            </table>
+        </body>
+        </html>
+    `;
+
+    downloadReport(html, `Informe_direccion_incidencias_${formatFileDate(reportDate)}.doc`);
+    showToast('Informe generado', 'success');
+}
+
+function buildExecutiveConclusion(items, openItems, topHotel, topType, topArea, noAction) {
+    const openText = openItems.length
+        ? `Hay ${openItems.length} registros abiertos que requieren seguimiento operativo.`
+        : 'No constan registros abiertos en este momento.';
+    const actionText = noAction
+        ? `${noAction} registros no tienen una acción o solución documentada, por lo que debe reforzarse el cierre.`
+        : 'Los registros incluyen actuación documentada.';
+    return `El registro actual contiene ${items.length} entradas. ${topHotel.label} concentra el mayor volumen, el tipo más repetido es ${topType.label} y el foco principal por zona o servicio es ${topArea.label}. ${openText} ${actionText}`;
+}
+
+function buildHotelFindings(byHotel, items) {
+    return Object.entries(byHotel)
+        .sort((a, b) => b[1] - a[1])
+        .map(([hotel, count]) => {
+            const hotelItems = items.filter(item => (item.hotel || 'Sin centro') === hotel);
+            const topArea = getTopMetric(hotelItems, item => item.departamento || 'General');
+            const openCount = hotelItems.filter(isOpenIncident).length;
+            return `
+                <h3>${escapeHtml(hotel)}</h3>
+                <p>Registra ${count} entradas (${formatPercent(count, items.length)}). El área más repetida es <strong>${escapeHtml(topArea.label)}</strong> con ${topArea.count} registros. ${openCount ? `Quedan ${openCount} registros abiertos que deben revisarse hasta cierre.` : 'No constan registros abiertos para este centro.'}</p>
+            `;
+        }).join('');
+}
+
+function buildMetricTable(metrics, total, firstColumn) {
+    const rows = Object.entries(metrics)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => `
+            <tr>
+                <td>${escapeHtml(label)}</td>
+                <td>${count}</td>
+                <td>${formatPercent(count, total)}</td>
+                <td>${count >= Math.max(2, total * 0.15) ? 'Foco relevante para seguimiento.' : 'Volumen bajo o puntual.'}</td>
+            </tr>
+        `).join('');
+
+    return `
+        <table>
+            <tr><th>${firstColumn}</th><th>Total</th><th>Peso</th><th>Interpretación</th></tr>
+            ${rows}
+        </table>
+    `;
+}
+
+function buildRiskTable(risks) {
+    if (!risks.length) {
+        return '<p class="muted">No se detectan riesgos prioritarios por palabras clave. Revise igualmente los registros abiertos.</p>';
+    }
+
+    return `
+        <table>
+            <tr><th>Prioridad</th><th>Riesgo identificado</th><th>Evidencia del registro</th><th>Acción inmediata</th></tr>
+            ${risks.map(risk => `
+                <tr>
+                    <td><span class="pill">${risk.priority}</span></td>
+                    <td>${escapeHtml(risk.title)}</td>
+                    <td>${escapeHtml(risk.evidence)}</td>
+                    <td>${escapeHtml(risk.action)}</td>
+                </tr>
+            `).join('')}
+        </table>
+    `;
+}
+
+function getPriorityRisks(items) {
+    const catalog = [
+        { priority: 'P1', title: 'Seguridad de clientes o trabajadores', terms: ['caida', 'resbal', 'corte', 'lesion', 'quemad', 'explosion', 'seguridad'], action: 'Revisar zona, retirar el riesgo, documentar evidencias y cerrar con responsable.' },
+        { priority: 'P1', title: 'Instalaciones o mantenimiento crítico', terms: ['agua', 'averia', 'rot', 'fuga', 'goter', 'electric', 'secador'], action: 'Abrir parte técnico, identificar causa, fecha de corrección y verificación posterior.' },
+        { priority: 'P2', title: 'Servicio y experiencia del cliente', terms: ['buffet', 'desayuno', 'limpieza', 'habitacion', 'ruido', 'personal'], action: 'Revisar estándar de servicio, reforzar checklist y confirmar seguimiento con el área.' },
+        { priority: 'P2', title: 'Reputación o comunicación al cliente', terms: ['reclam', 'respuesta', 'internet', 'aviso', 'reserva'], action: 'Validar comunicación al cliente y registrar respuesta formal si procede.' }
+    ];
+
+    return catalog.map(rule => {
+        const hits = items.filter(item => {
+            const text = normalizeSearchText(`${item.tipo} ${item.departamento} ${item.descripcion} ${item.accion} ${item.notas_internas}`);
+            return rule.terms.some(term => text.includes(term));
+        });
+        return hits.length ? {
+            priority: rule.priority,
+            title: rule.title,
+            evidence: `${hits.length} registros relacionados. Ejemplos: ${hits.slice(0, 4).map(item => item.id_original || item.id).join(', ')}`,
+            action: rule.action
+        } : null;
+    }).filter(Boolean);
+}
+
+function buildControlWeakness(items, noAction, noResponse) {
+    const noOwner = items.filter(item => isOpenIncident(item) && !(item.responsable || '').trim()).length;
+    return `${noAction} de ${items.length} registros no tienen solución documentada, ${noResponse} no informan si el cliente solicita respuesta y ${noOwner} registros abiertos no tienen responsable asignado. Estos campos son clave para demostrar seguimiento y cierre.`;
+}
+
+function formatMetricSummary(metrics, total) {
+    return Object.entries(metrics)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => `${escapeHtml(label)} ${count} (${formatPercent(count, total)})`)
+        .join(' · ');
+}
+
+function formatPercent(value, total) {
+    if (!total) return '0%';
+    return `${((value / total) * 100).toFixed(1).replace('.', ',')}%`;
+}
+
+function normalizeSearchText(value) {
+    return (value || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function formatFileDate(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function downloadReport(html, filename) {
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 function exportToExcel() {
     const exportRows = STATE.incidencias.map(item => ({
         id: item.id_original || item.id,
