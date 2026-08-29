@@ -2,7 +2,7 @@ const DB_KEY = 'incidencias_db';
 const ATTACHMENT_DB_NAME = 'IncidenciasAttachmentsDB';
 const ATTACHMENT_STORE = 'attachments';
 const NOTIFICATION_EMAIL = 'comunicaciones@hotelguadiana.es';
-const NOTIFICATION_WEBHOOK_URL = '';
+const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xvgawqya';
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
@@ -284,24 +284,27 @@ async function sendAutomaticNotification(item) {
     try {
         const response = await fetch(NOTIFICATION_WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
-                to: NOTIFICATION_EMAIL,
-                subject,
-                id: item.id_original,
+                _subject: subject,
+                email_destino: NOTIFICATION_EMAIL,
+                id_registro: item.id_original,
                 tipo: item.tipo,
                 centro: item.hotel,
-                zona: item.departamento,
+                zona_servicio: item.departamento,
                 fecha: new Date(item.fecha_creacion).toLocaleString('es-ES'),
-                registradoPor: item.usuario_registro,
-                cliente: item.cliente || '',
-                solicitaRespuesta: item.solicita_respuesta || '',
-                telefono: item.telefono || '',
-                correoRespuesta: item.correo_respuesta || '',
-                descripcion: item.descripcion || '',
-                actuacion: item.accion || '',
-                datosEspecificos: item.notas_internas || '',
-                adjuntos: attachmentNames
+                registrado_por: item.usuario_registro,
+                cliente: item.cliente || '-',
+                solicita_respuesta: item.solicita_respuesta || '-',
+                telefono: item.telefono || '-',
+                correo_respuesta: item.correo_respuesta || '-',
+                descripcion: item.descripcion || '-',
+                actuacion_inicial: item.accion || '-',
+                datos_especificos: item.notas_internas || '-',
+                adjuntos: attachmentNames.length ? attachmentNames.join(', ') : 'Sin adjuntos'
             })
         });
         return response.ok;
