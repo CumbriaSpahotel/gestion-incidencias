@@ -2,7 +2,7 @@ const DB_KEY = 'incidencias_db';
 const ATTACHMENT_DB_NAME = 'IncidenciasAttachmentsDB';
 const ATTACHMENT_STORE = 'attachments';
 const NOTIFICATION_EMAIL = 'comunicaciones@hotelguadiana.es';
-const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xvgawqya';
+const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xbgjlpnr';
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
