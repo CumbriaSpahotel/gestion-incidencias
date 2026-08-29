@@ -10,7 +10,7 @@ const CONFIG = {
 let STATE = {
     incidencias: [],
     lastUpdate: null,
-    filters: { search: '', hotel: 'all', estado: 'all' }
+    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'all' }
 };
 
 window.refreshIntervalId = null;
@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLocalState();
     setupEventListeners();
     setupCharts();
+    renderDashboard();
 
     // Attempt local handle restore first
     await checkSavedHandle();
@@ -161,11 +162,18 @@ function initLocalState() {
 }
 
 function setupEventListeners() {
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+        item.addEventListener('click', () => switchView(item.dataset.view));
+    });
+
     document.getElementById('searchInput').addEventListener('input', (e) => {
         STATE.filters.search = e.target.value.toLowerCase(); renderTable();
     });
     document.getElementById('filterHotel').addEventListener('change', (e) => {
         STATE.filters.hotel = e.target.value; renderTable();
+    });
+    document.getElementById('filterTipo').addEventListener('change', (e) => {
+        STATE.filters.tipo = e.target.value; renderTable();
     });
     document.getElementById('filterEstado').addEventListener('change', (e) => {
         STATE.filters.estado = e.target.value; renderTable();
@@ -573,7 +581,12 @@ function saveState() {
 }
 
 function renderDashboard() {
-    renderKPIs(); renderTable(); renderCharts(); populateSelects();
+    renderKPIs();
+    renderOperations();
+    renderTable();
+    renderCharts();
+    renderAnalysis();
+    populateSelects();
 }
 
 function renderKPIs() {
@@ -581,19 +594,43 @@ function renderKPIs() {
     document.getElementById('kpiTotal').innerText = items.length;
     document.getElementById('kpiAbiertas').innerText = items.filter(i => ['Pendiente', 'En proceso'].includes(i.estado)).length;
     document.getElementById('kpiCerradas').innerText = items.filter(i => ['Resuelto', 'Cerrado'].includes(i.estado)).length;
+    document.getElementById('kpiTiempo').innerText = calculateAverageCloseDays(items);
+}
+
+function renderOperations() {
+    const openItems = STATE.incidencias.filter(isOpenIncident);
+    const noOwner = openItems.filter(item => !(item.responsable || '').trim()).length;
+    const topArea = getTopMetric(openItems, item => item.departamento || 'General');
+
+    document.getElementById('opsAttention').innerText = openItems.length;
+    document.getElementById('opsNoOwner').innerText = noOwner;
+    document.getElementById('opsTopArea').innerText = topArea.label;
+    document.getElementById('opsTopAreaDetail').innerText = topArea.count
+        ? `${topArea.count} registros abiertos en esta zona.`
+        : 'Sin datos pendientes.';
 }
 
 function renderTable() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
-    const { search, hotel, estado } = STATE.filters;
+    const { search, hotel, tipo, estado } = STATE.filters;
     const filtered = STATE.incidencias.filter(item => {
         const matchesSearch = (item.descripcion || '').toLowerCase().includes(search) || (item.usuario_registro || '').toLowerCase().includes(search);
         const matchesHotel = hotel === 'all' || item.hotel === hotel;
+        const matchesTipo = tipo === 'all' || item.tipo === tipo;
         const matchesEstado = estado === 'all' || item.estado === estado;
-        return matchesSearch && matchesHotel && matchesEstado;
+        return matchesSearch && matchesHotel && matchesTipo && matchesEstado;
     });
     filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    if (!filtered.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-table">No hay registros con estos filtros.</td>
+            </tr>
+        `;
+        return;
+    }
 
     filtered.forEach(item => {
         const tr = document.createElement('tr');
@@ -617,6 +654,98 @@ function renderTable() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+function renderAnalysis() {
+    renderMetricList('analysisByType', countBy(STATE.incidencias, item => item.tipo || 'Sin tipo'));
+    renderMetricList('analysisByStatus', countBy(STATE.incidencias, item => item.estado || 'Pendiente'));
+    renderMetricList('analysisByArea', countBy(STATE.incidencias, item => item.departamento || 'General'), 6);
+    renderRecentList();
+}
+
+function renderMetricList(containerId, metrics, limit = 4) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const total = STATE.incidencias.length || 1;
+    const rows = Object.entries(metrics)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit);
+
+    if (!rows.length) {
+        container.innerHTML = '<p class="empty-analysis">Sin datos registrados.</p>';
+        return;
+    }
+
+    container.innerHTML = rows.map(([label, count]) => {
+        const percent = Math.round((count / total) * 100);
+        return `
+            <div class="metric-row">
+                <div>
+                    <strong>${escapeHtml(label)}</strong>
+                    <span>${count} registros</span>
+                </div>
+                <div class="metric-bar" aria-hidden="true">
+                    <span style="width:${percent}%"></span>
+                </div>
+                <b>${percent}%</b>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderRecentList() {
+    const container = document.getElementById('analysisRecent');
+    if (!container) return;
+    const recent = [...STATE.incidencias]
+        .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion))
+        .slice(0, 5);
+
+    if (!recent.length) {
+        container.innerHTML = '<p class="empty-analysis">Sin registros recientes.</p>';
+        return;
+    }
+
+    container.innerHTML = recent.map(item => `
+        <button class="recent-item" type="button" onclick="openIncidentModal('${item.id}')">
+            <span>${escapeHtml(item.tipo || 'Registro')} · ${escapeHtml(item.hotel || 'Sin centro')}</span>
+            <strong>${escapeHtml(item.departamento || 'General')}</strong>
+            <small>${formatDate(item.fecha_creacion)} · ${escapeHtml(item.estado || 'Pendiente')}</small>
+        </button>
+    `).join('');
+}
+
+function countBy(items, getLabel) {
+    return items.reduce((acc, item) => {
+        const label = getLabel(item);
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+    }, {});
+}
+
+function getTopMetric(items, getLabel) {
+    const [label = '-', count = 0] = Object.entries(countBy(items, getLabel))
+        .sort((a, b) => b[1] - a[1])[0] || [];
+    return { label, count };
+}
+
+function isOpenIncident(item) {
+    return ['Pendiente', 'En proceso'].includes(item.estado || 'Pendiente');
+}
+
+function calculateAverageCloseDays(items) {
+    const closed = items
+        .map(item => {
+            const start = new Date(item.fecha_creacion);
+            const end = new Date(item.fecha_cierre);
+            if (isNaN(start) || isNaN(end) || end < start) return null;
+            return Math.max(1, Math.round((end - start) / 86400000));
+        })
+        .filter(value => value !== null);
+
+    if (!closed.length) return '-';
+    const average = closed.reduce((sum, value) => sum + value, 0) / closed.length;
+    return `${average.toFixed(average >= 10 ? 0 : 1)} d`;
 }
 
 function escapeHtml(value) {
@@ -679,6 +808,15 @@ function closeIncidentModal() {
     modal.setAttribute('aria-hidden', 'true');
     document.querySelectorAll('[data-object-url]').forEach(element => {
         URL.revokeObjectURL(element.dataset.objectUrl);
+    });
+}
+
+function switchView(view) {
+    document.querySelectorAll('.view-section').forEach(section => {
+        section.classList.toggle('active', section.id === `${view}Section`);
+    });
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+        item.classList.toggle('active', item.dataset.view === view);
     });
 }
 

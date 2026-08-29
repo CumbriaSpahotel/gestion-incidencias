@@ -38,7 +38,7 @@
             </div>
 
             <ul class="nav-menu">
-                <li class="nav-item active">
+                <li class="nav-item active" data-view="dashboard">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Dashboard</span>
                 </li>
@@ -46,11 +46,11 @@
                     <i class="fa-solid fa-plus"></i>
                     <span>Nueva incidencia</span>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" data-view="incidents">
                     <i class="fa-solid fa-list-check"></i>
                     <span>Incidencias</span>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" data-view="analysis">
                     <i class="fa-solid fa-chart-line"></i>
                     <span>Análisis</span>
                 </li>
@@ -64,7 +64,7 @@
             <header class="header">
                 <div class="page-title">
                     <span class="eyebrow">Q-Centros</span>
-                    <h1>Panel de incidencias</h1>
+                    <h1>Centro de operaciones</h1>
                     <span id="lastUpdateText" class="last-update">Sistema autónomo</span>
                 </div>
 
@@ -87,10 +87,11 @@
                 </div>
             </header>
 
+            <section id="dashboardSection" class="view-section active">
             <section class="workspace-summary">
                 <div>
-                    <span>Aplicación autónoma</span>
-                    <strong>Registro común para Hotel Guadiana, Cumbria Hotel y Cumbria Bienestar.</strong>
+                    <span>Control de dirección</span>
+                    <strong>Seguimiento operativo para Hotel Guadiana, Cumbria Hotel y Cumbria Bienestar.</strong>
                 </div>
                 <div class="summary-centers">
                     <img src="assets/logo-guadiana.jpg" alt="Hotel Guadiana">
@@ -124,6 +125,24 @@
                 </div>
             </section>
 
+            <section class="operations-grid">
+                <article class="card operation-card attention">
+                    <span class="kpi-title">Prioridad hoy</span>
+                    <strong id="opsAttention">0</strong>
+                    <p>Pendientes o en proceso sin resolver.</p>
+                </article>
+                <article class="card operation-card">
+                    <span class="kpi-title">Sin responsable</span>
+                    <strong id="opsNoOwner">0</strong>
+                    <p>Registros abiertos que necesitan asignación.</p>
+                </article>
+                <article class="card operation-card">
+                    <span class="kpi-title">Más repetido</span>
+                    <strong id="opsTopArea">-</strong>
+                    <p id="opsTopAreaDetail">Sin datos suficientes.</p>
+                </article>
+            </section>
+
             <!-- Charts Section -->
             <section class="charts-section">
                 <div class="card">
@@ -139,13 +158,28 @@
                     </div>
                 </div>
             </section>
+            </section>
 
             <!-- Operational Table -->
-            <section class="table-section">
+            <section id="incidentsSection" class="view-section table-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Gestión diaria</span>
+                        <h2>Incidencias abiertas y seguimiento</h2>
+                    </div>
+                    <p>Use esta vista para revisar registros, asignar responsable y cambiar el estado conforme avanza la gestión.</p>
+                </div>
                 <div class="table-controls">
                     <div class="filters">
                         <select id="filterHotel" class="select-filter">
                             <option value="all">Todos los Hoteles</option>
+                        </select>
+                        <select id="filterTipo" class="select-filter">
+                            <option value="all">Todos los Tipos</option>
+                            <option value="Queja">Queja</option>
+                            <option value="Reclamación">Reclamación</option>
+                            <option value="Incidencia">Incidencia</option>
+                            <option value="Sugerencia">Sugerencia</option>
                         </select>
                         <select id="filterEstado" class="select-filter">
                             <option value="all">Todos los Estados</option>
@@ -176,6 +210,34 @@
                             <!-- JS Will Render Rows Here -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <section id="analysisSection" class="view-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Análisis</span>
+                        <h2>Lectura operativa de incidencias</h2>
+                    </div>
+                    <p>Resumen para detectar concentración de problemas, evolución y registros que requieren decisión.</p>
+                </div>
+                <div class="analysis-grid">
+                    <article class="card analysis-panel">
+                        <h3>Por tipo de registro</h3>
+                        <div id="analysisByType" class="metric-list"></div>
+                    </article>
+                    <article class="card analysis-panel">
+                        <h3>Por estado</h3>
+                        <div id="analysisByStatus" class="metric-list"></div>
+                    </article>
+                    <article class="card analysis-panel">
+                        <h3>Focos por zona o servicio</h3>
+                        <div id="analysisByArea" class="metric-list"></div>
+                    </article>
+                    <article class="card analysis-panel">
+                        <h3>Últimos registros</h3>
+                        <div id="analysisRecent" class="recent-list"></div>
+                    </article>
                 </div>
             </section>
         </main>
