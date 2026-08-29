@@ -299,16 +299,15 @@ body {
 }
 
 .card {
-    background: var(--surface);
-    border-radius: 0.65rem;
+    background-color: var(--surface);
+    border-radius: 1rem;
     padding: 1.5rem;
     box-shadow: var(--shadow);
-    transition: transform 0.2s;
-    border: 1px solid rgba(0,0,0,0.02);
+    border: 1px solid var(--border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
-    transform: translateY(-1px);
     box-shadow: var(--shadow-lg);
 }
 
@@ -453,7 +452,7 @@ td {
 }
 
 tr:hover td {
-    background-color: #f9fafb;
+    background-color: rgba(130, 150, 140, 0.08);
 }
 
 .data-table tbody tr {
@@ -1170,3 +1169,11 @@ tr:hover td {
         text-align: left;
     }
 }
+
+/* DARK MODE */
+body.dark-mode { --primary: #238962; --primary-hover: #31a67a; --background: #121614; --surface: #1e2522; --text-main: #e2e8e5; --text-muted: #9ba6a1; --border: #2d3833; --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.5); --shadow: 0 4px 6px -1px rgba(0,0,0,0.6); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.7); }
+
+
+.view-section { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+

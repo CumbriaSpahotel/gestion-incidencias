@@ -376,3 +376,24 @@ function escapeHtml(value) {
         "'": '&#039;'
     }[char]));
 }
+
+// Dark Mode Setup
+document.addEventListener('DOMContentLoaded', () => {
+const btnTheme = document.getElementById('btnToggleTheme');
+if (btnTheme) {
+if (localStorage.getItem('dark-mode') === 'true') {
+document.body.classList.add('dark-mode');
+btnTheme.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+btnTheme.querySelector('span').innerText = 'Modo claro';
+}
+btnTheme.addEventListener('click', () => {
+const isDark = document.body.classList.toggle('dark-mode');
+localStorage.setItem('dark-mode', isDark);
+const icon = btnTheme.querySelector('i');
+const span = btnTheme.querySelector('span');
+if (isDark) { icon.classList.replace('fa-moon', 'fa-sun'); span.innerText = 'Modo claro'; }
+else { icon.classList.replace('fa-sun', 'fa-moon'); span.innerText = 'Modo oscuro'; }
+});
+}
+});
+

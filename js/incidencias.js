@@ -168,12 +168,27 @@ function initLocalState() {
             snapshot.forEach((doc) => {
                 firebaseItems.push({ ...doc.data(), id: doc.id });
             });
+            
+            // Si Firebase está vacío pero tenemos datos locales, los subimos (Migración)
+            if (snapshot.docs.length === 0 && STATE.incidencias.length > 0) {
+                console.log("Migrando incidencias locales a Firebase...");
+                STATE.incidencias.forEach(item => {
+                    const docId = item.id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    item.id = docId;
+                    db.collection('incidencias').doc(docId).set(item).catch(console.error);
+                });
+                return; // onSnapshot volverá a saltar cuando se guarden
+            }
+
             // Overwrite state with Firebase data
             if (firebaseItems.length > 0 || snapshot.docs.length === 0) {
                 STATE.incidencias = firebaseItems;
                 STATE.lastUpdate = new Date().toISOString();
                 updateLastUpdateUI();
                 renderDashboard();
+                
+                // Keep local storage in sync as a backup
+                localStorage.setItem(CONFIG.dbName, JSON.stringify({ items: STATE.incidencias, lastUpdate: STATE.lastUpdate }));
             }
         }, (error) => {
             console.error("Error fetching from Firebase:", error);
@@ -216,6 +231,30 @@ function setupEventListeners() {
         event.preventDefault();
         pickLocalFile();
     });
+
+    // Dark Mode Toggle
+    const btnTheme = document.getElementById('btnToggleTheme');
+    if (btnTheme) {
+        // Load preference
+        if (localStorage.getItem('dark-mode') === 'true') {
+            document.body.classList.add('dark-mode');
+            btnTheme.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+            btnTheme.querySelector('span').innerText = 'Modo claro';
+        }
+        btnTheme.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('dark-mode', isDark);
+            const icon = btnTheme.querySelector('i');
+            const span = btnTheme.querySelector('span');
+            if (isDark) {
+                icon.classList.replace('fa-moon', 'fa-sun');
+                span.innerText = 'Modo claro';
+            } else {
+                icon.classList.replace('fa-sun', 'fa-moon');
+                span.innerText = 'Modo oscuro';
+            }
+        });
+    }
 
     const configButton = document.getElementById('btnConfig');
     if (configButton) configButton.addEventListener('click', configureSourceUrl);
@@ -1116,7 +1155,11 @@ function populateSelects() {
     sel.value = cur;
 }
 function updateLastUpdateUI() {
-    if (STATE.lastUpdate) document.getElementById('lastUpdateText').innerText = "Act: " + new Date(STATE.lastUpdate).toLocaleTimeString();
+    if (STATE.lastUpdate) {
+        document.getElementById('lastUpdateText').innerHTML = `<i class="fa-solid fa-cloud-check" style="color:var(--success)"></i> Sincronizado: ` + new Date(STATE.lastUpdate).toLocaleString('es-ES');
+    } else {
+        document.getElementById('lastUpdateText').innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="color:var(--primary)"></i> Conectando con la nube...`;
+    }
 }
 function showLoading(s) {
     const el = document.getElementById('loadingOverlay'); if (el) el.classList.toggle('active', s);
