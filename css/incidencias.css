@@ -541,8 +541,8 @@ tr:hover td {
 
 .form-section {
     display: grid;
-    gap: 0.8rem;
-    margin-bottom: 1.35rem;
+    gap: 0.7rem;
+    margin-bottom: 1.2rem;
 }
 
 .section-kicker {
@@ -555,56 +555,67 @@ tr:hover td {
 .center-picker {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.85rem;
+    gap: 0.65rem;
 }
 
 .center-card {
-    min-height: 112px;
-    padding: 0.8rem;
+    min-height: 78px;
+    padding: 0.65rem 0.7rem;
     border: 1px solid var(--border);
-    border-radius: 0.65rem;
+    border-radius: 0.55rem;
     background: white;
     cursor: pointer;
-    display: grid;
-    align-content: space-between;
-    gap: 0.55rem;
-    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-align: left;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 .center-card img {
-    width: 100%;
-    height: 58px;
+    width: 74px;
+    height: 42px;
+    flex: 0 0 74px;
     object-fit: contain;
+    padding: 0.25rem;
+    border: 1px solid #edf2ef;
+    border-radius: 0.4rem;
+    background: #fff;
 }
 
 .center-card span {
     color: var(--text-main);
-    font-size: 0.86rem;
+    font-size: 0.82rem;
     font-weight: 700;
-    text-align: center;
+    line-height: 1.2;
     text-transform: none;
 }
 
 .center-card.active,
 .type-card.active {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(20, 90, 63, 0.12);
+    background: #f5faf7;
+    box-shadow: 0 0 0 3px rgba(20, 90, 63, 0.1);
 }
 
-.center-card:hover,
 .type-card:hover {
     transform: translateY(-1px);
+}
+
+.center-card:hover {
+    border-color: #a8c7b6;
+    background: #f8fbf8;
 }
 
 .type-picker {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.85rem;
+    gap: 0.7rem;
 }
 
 .type-card {
-    min-height: 126px;
-    padding: 1rem;
+    min-height: 112px;
+    padding: 0.9rem;
     border: 1px solid var(--border);
     border-radius: 0.65rem;
     background: white;
@@ -806,13 +817,14 @@ tr:hover td {
 
 .entry-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-columns: minmax(0, 1fr) 260px;
     gap: 1.5rem;
     align-items: start;
 }
 
 .standalone-form {
     transform: none;
+    padding: 1.35rem;
 }
 
 .standalone-form:hover {
@@ -822,6 +834,8 @@ tr:hover td {
 .entry-side-panel {
     position: sticky;
     top: 1.5rem;
+    padding: 1.25rem;
+    border-top: 4px solid var(--gold);
 }
 
 .entry-side-panel h2 {
@@ -832,6 +846,7 @@ tr:hover td {
 .entry-side-panel p {
     color: var(--text-muted);
     font-size: 0.92rem;
+    line-height: 1.55;
 }
 
 .side-logo-stack {
@@ -842,7 +857,7 @@ tr:hover td {
 
 .entry-stat {
     margin-top: 1.25rem;
-    padding: 1rem;
+    padding: 0.9rem;
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     background: #f9fafb;
@@ -859,7 +874,7 @@ tr:hover td {
 .entry-stat strong {
     display: block;
     margin-top: 0.2rem;
-    font-size: 2rem;
+    font-size: 1.75rem;
 }
 
 .save-message {
