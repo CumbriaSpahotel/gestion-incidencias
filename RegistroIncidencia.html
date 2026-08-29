@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Incidencia | Hoteles</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/incidencias.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-hotel"></i>
+                <span>HotelManager</span>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="window.location.href='GestionIncidencias.html'">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item active">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nueva incidencia</span>
+                </li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="page-title">
+                    <h1>Nueva incidencia</h1>
+                    <span class="last-update">Registro autónomo sin Microsoft Forms</span>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" type="button" onclick="window.location.href='GestionIncidencias.html'">
+                        <i class="fa-solid fa-arrow-left"></i> Volver al panel
+                    </button>
+                </div>
+            </header>
+
+            <section class="entry-layout">
+                <form id="standaloneIncidentForm" class="card standalone-form">
+                    <div class="form-grid">
+                        <label>
+                            <span>Hotel</span>
+                            <select id="formHotel" required>
+                                <option value="Secotel Guadiana">Secotel Guadiana</option>
+                                <option value="Cumbria Spa&Hotel">Cumbria Spa&Hotel</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Tipo</span>
+                            <select id="formTipo" required>
+                                <option value="Queja">Queja</option>
+                                <option value="Sugerencia">Sugerencia</option>
+                                <option value="Incidencia">Incidencia</option>
+                                <option value="Reclamación">Reclamación</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Zona o servicio</span>
+                            <input id="formDepartamento" type="text" placeholder="Habitaciones, buffet, parking..." required>
+                        </label>
+                        <label>
+                            <span>Registrado por</span>
+                            <input id="formUsuario" type="text" placeholder="Nombre">
+                        </label>
+                        <label>
+                            <span>Cliente</span>
+                            <input id="formCliente" type="text" placeholder="Nombre del cliente">
+                        </label>
+                        <label>
+                            <span>Solicita respuesta</span>
+                            <select id="formSolicitaRespuesta">
+                                <option value="">Sin indicar</option>
+                                <option value="Sí">Sí</option>
+                                <option value="No">No</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Teléfono</span>
+                            <input id="formTelefono" type="text" placeholder="Opcional">
+                        </label>
+                        <label>
+                            <span>Correo de respuesta</span>
+                            <input id="formCorreoRespuesta" type="email" placeholder="Opcional">
+                        </label>
+                        <label class="full">
+                            <span>Descripción</span>
+                            <textarea id="formDescripcion" rows="7" placeholder="Describe qué ha ocurrido, quién lo comunicó, cuándo, dónde y cualquier dato relevante." required></textarea>
+                        </label>
+                        <label class="full">
+                            <span>Solución inmediata</span>
+                            <textarea id="formAccion" rows="4" placeholder="Indica si se ha dado una solución o qué acción queda pendiente."></textarea>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="btnClearForm" class="btn btn-secondary">
+                            <i class="fa-solid fa-eraser"></i> Limpiar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar incidencia
+                        </button>
+                    </div>
+                </form>
+
+                <aside class="card entry-side-panel">
+                    <h2>Registro directo</h2>
+                    <p>Las incidencias guardadas aquí aparecen automáticamente en el panel principal y se incluyen al exportar a Excel.</p>
+                    <div class="entry-stat">
+                        <span>Total actual</span>
+                        <strong id="currentTotal">0</strong>
+                    </div>
+                    <div id="saveMessage" class="save-message" aria-live="polite"></div>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/registro-incidencia.js"></script>
+</body>
+
+</html>

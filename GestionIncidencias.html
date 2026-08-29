@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Incidencias | Hoteles</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/incidencias.css">
+</head>
+
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-hotel"></i>
+                <span>HotelManager</span>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Incidencias</span>
+                </li>
+                <li class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Análisis</span>
+                </li>
+                <li class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Configuración</span>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="page-title">
+                    <h1>Panel de Incidencias</h1>
+                    <span id="lastUpdateText" class="last-update">Sincronizando...</span>
+                </div>
+
+                <div class="actions" style="display: flex; gap: 0.5rem;">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+
+                    <button id="btnUpload" class="btn btn-secondary">
+                        <i class="fa-solid fa-upload"></i> Cargar Local
+                    </button>
+                    <button id="btnNewIncident" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> Nueva incidencia
+                    </button>
+                    <button id="btnConfig" class="btn btn-secondary">
+                        <i class="fa-solid fa-link"></i> Config URL
+                    </button>
+                    <button id="btnRefresh" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrows-rotate"></i> Actualizar
+                    </button>
+                    <button id="btnExport" class="btn btn-primary">
+                        <i class="fa-solid fa-download"></i> Exportar
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPI Grid -->
+            <section class="kpi-grid">
+                <div class="card kpi-card">
+                    <span class="kpi-title">Total Registrados</span>
+                    <span class="kpi-value" id="kpiTotal">0</span>
+                    <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Historico</span>
+                </div>
+                <div class="card kpi-card">
+                    <span class="kpi-title">Abiertas</span>
+                    <span class="kpi-value" id="kpiAbiertas">0</span>
+                    <span class="kpi-trend trend-down"><i class="fa-solid fa-circle-exclamation"></i> Requieren
+                        atención</span>
+                </div>
+                <div class="card kpi-card">
+                    <span class="kpi-title">Cerradas</span>
+                    <span class="kpi-value" id="kpiCerradas">0</span>
+                    <span class="kpi-trend trend-up"><i class="fa-solid fa-check"></i> Resueltas</span>
+                </div>
+                <div class="card kpi-card">
+                    <span class="kpi-title">Tiempo Medio</span>
+                    <span class="kpi-value" id="kpiTiempo">-</span>
+                    <span class="kpi-trend"><i class="fa-regular fa-clock"></i> Estimado</span>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="card">
+                    <h3 class="kpi-title" style="margin-bottom: 1rem;">Evolución Mensual</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTendencias"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="kpi-title" style="margin-bottom: 1rem;">Por Hotel</h3>
+                    <div class="chart-container">
+                        <canvas id="chartIncidenciasHotel"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Operational Table -->
+            <section class="table-section">
+                <div class="table-controls">
+                    <div class="filters">
+                        <select id="filterHotel" class="select-filter">
+                            <option value="all">Todos los Hoteles</option>
+                        </select>
+                        <select id="filterEstado" class="select-filter">
+                            <option value="all">Todos los Estados</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="En proceso">En proceso</option>
+                            <option value="Resuelto">Resuelto</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                    </div>
+                    <input type="text" id="searchInput" placeholder="Buscar por descripción, usuario..."
+                        class="search-input">
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hotel</th>
+                                <th>Tipo</th>
+                                <th>Depto</th>
+                                <th>Descripción</th>
+                                <th>Estado</th>
+                                <th>Responsable</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- JS Will Render Rows Here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="incidentModal" class="modal-backdrop" aria-hidden="true">
+        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <header class="modal-header">
+                <div>
+                    <span id="modalMeta" class="modal-meta"></span>
+                    <h2 id="modalTitle">Detalle de incidencia</h2>
+                </div>
+                <button id="btnCloseModal" class="icon-button" type="button" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            <div id="modalBody" class="modal-body"></div>
+        </section>
+    </div>
+
+    <div id="incidentFormModal" class="modal-backdrop" aria-hidden="true">
+        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="formModalTitle">
+            <header class="modal-header">
+                <div>
+                    <span class="modal-meta">Registro interno</span>
+                    <h2 id="formModalTitle">Nueva incidencia</h2>
+                </div>
+                <button id="btnCloseFormModal" class="icon-button" type="button" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            <form id="incidentForm" class="modal-body incident-form">
+                <div class="form-grid">
+                    <label>
+                        <span>Hotel</span>
+                        <select id="formHotel" required>
+                            <option value="Secotel Guadiana">Secotel Guadiana</option>
+                            <option value="Cumbria Spa&Hotel">Cumbria Spa&Hotel</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Tipo</span>
+                        <select id="formTipo" required>
+                            <option value="Queja">Queja</option>
+                            <option value="Sugerencia">Sugerencia</option>
+                            <option value="Incidencia">Incidencia</option>
+                            <option value="Reclamación">Reclamación</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Zona o servicio</span>
+                        <input id="formDepartamento" type="text" placeholder="Habitaciones, buffet, parking..." required>
+                    </label>
+                    <label>
+                        <span>Registrado por</span>
+                        <input id="formUsuario" type="text" placeholder="Nombre">
+                    </label>
+                    <label>
+                        <span>Cliente</span>
+                        <input id="formCliente" type="text" placeholder="Nombre del cliente">
+                    </label>
+                    <label>
+                        <span>Solicita respuesta</span>
+                        <select id="formSolicitaRespuesta">
+                            <option value="">Sin indicar</option>
+                            <option value="Sí">Sí</option>
+                            <option value="No">No</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Teléfono</span>
+                        <input id="formTelefono" type="text" placeholder="Opcional">
+                    </label>
+                    <label>
+                        <span>Correo de respuesta</span>
+                        <input id="formCorreoRespuesta" type="email" placeholder="Opcional">
+                    </label>
+                    <label class="full">
+                        <span>Descripción</span>
+                        <textarea id="formDescripcion" rows="5" placeholder="Describe qué ha ocurrido, cuándo, dónde y cualquier dato relevante." required></textarea>
+                    </label>
+                    <label class="full">
+                        <span>Solución inmediata</span>
+                        <textarea id="formAccion" rows="3" placeholder="Indica si se ha dado una solución o qué acción queda pendiente."></textarea>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btnCancelForm" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Logic -->
+    <script src="js/incidencias.js"></script>
+</body>
+
+</html>

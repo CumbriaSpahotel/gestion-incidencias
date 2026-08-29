@@ -1,0 +1,6 @@
+*.xlsx
+*.xls
+*.docx
+.tmp_*/
+desktop.ini
+
