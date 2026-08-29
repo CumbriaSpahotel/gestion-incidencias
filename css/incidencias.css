@@ -125,6 +125,30 @@ body {
     background: white;
 }
 
+.staff-note {
+    margin-top: 0.25rem;
+    padding: 1rem;
+    border: 1px solid #d7e7dd;
+    border-radius: 0.75rem;
+    background: #f7fbf8;
+}
+
+.staff-note h2 {
+    margin-bottom: 0.6rem;
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.staff-note p {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.staff-note p + p {
+    margin-top: 0.65rem;
+}
+
 /* Main Content */
 .main-content {
     padding: 2rem;
