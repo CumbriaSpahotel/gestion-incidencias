@@ -1,10 +1,13 @@
 const DB_KEY = 'incidencias_db';
+const ATTACHMENT_DB_NAME = 'IncidenciasAttachmentsDB';
+const ATTACHMENT_STORE = 'attachments';
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
     setupPickers();
     updateRecordType('Queja');
     document.getElementById('standaloneIncidentForm').addEventListener('submit', saveIncident);
+    document.getElementById('formAdjuntos').addEventListener('change', renderSelectedAttachments);
     document.getElementById('btnClearForm').addEventListener('click', () => {
         document.getElementById('standaloneIncidentForm').reset();
         document.getElementById('formHotel').value = 'Secotel Guadiana';
@@ -12,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveButton('.center-card', 'center', 'Secotel Guadiana');
         setActiveButton('.type-card', 'type', 'Queja');
         updateRecordType('Queja');
+        renderSelectedAttachments();
         showMessage('');
     });
 });
@@ -107,13 +111,15 @@ function saveState(state) {
     localStorage.setItem(DB_KEY, JSON.stringify(state));
 }
 
-function saveIncident(event) {
+async function saveIncident(event) {
     event.preventDefault();
 
     const state = loadState();
     const now = new Date();
+    const localId = `local_${Date.now()}`;
+    const attachments = await saveAttachments(localId);
     const item = {
-        id: `local_${Date.now()}`,
+        id: localId,
         source: 'local',
         id_original: `WEB-${String(getNextLocalNumber(state.items)).padStart(4, '0')}`,
         fecha_creacion: now,
@@ -131,7 +137,8 @@ function saveIncident(event) {
         telefono: valueOfOptional('formTelefono'),
         correo_respuesta: valueOfOptional('formCorreoRespuesta'),
         fecha_cierre: '',
-        notas_internas: buildInternalNotes()
+        notas_internas: buildInternalNotes(),
+        attachments: attachments.map(({ id, name, type, size }) => ({ id, name, type, size }))
     };
 
     state.items.unshift(item);
@@ -142,6 +149,70 @@ function saveIncident(event) {
     document.getElementById('standaloneIncidentForm').reset();
     document.getElementById('formHotel').value = 'Secotel Guadiana';
     document.getElementById('formTipo').value = 'Queja';
+    setActiveButton('.center-card', 'center', 'Secotel Guadiana');
+    setActiveButton('.type-card', 'type', 'Queja');
+    updateRecordType('Queja');
+    renderSelectedAttachments();
+}
+
+function renderSelectedAttachments() {
+    const list = document.getElementById('attachmentList');
+    const files = Array.from(document.getElementById('formAdjuntos').files || []);
+    if (!files.length) {
+        list.innerHTML = '';
+        return;
+    }
+
+    list.innerHTML = files.map(file => `
+        <div class="attachment-chip">
+            <i class="fa-solid ${file.type.startsWith('image/') ? 'fa-image' : 'fa-file'}"></i>
+            <span>${escapeHtml(file.name)}</span>
+            <small>${formatBytes(file.size)}</small>
+        </div>
+    `).join('');
+}
+
+async function saveAttachments(incidentId) {
+    const files = Array.from(document.getElementById('formAdjuntos').files || []);
+    if (!files.length) return [];
+
+    const records = files.map((file, index) => ({
+        id: `${incidentId}_att_${index}`,
+        incidentId,
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        createdAt: new Date().toISOString(),
+        blob: file
+    }));
+
+    const db = await openAttachmentDB();
+    await Promise.all(records.map(record => putAttachment(db, record)));
+    db.close();
+    return records;
+}
+
+function openAttachmentDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(ATTACHMENT_DB_NAME, 1);
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(ATTACHMENT_STORE)) {
+                db.createObjectStore(ATTACHMENT_STORE, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function putAttachment(db, record) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(ATTACHMENT_STORE, 'readwrite');
+        tx.objectStore(ATTACHMENT_STORE).put(record);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
 }
 
 function valueOf(id) {
@@ -189,4 +260,22 @@ function showMessage(message) {
     const el = document.getElementById('saveMessage');
     el.textContent = message;
     el.classList.toggle('active', Boolean(message));
+}
+
+function formatBytes(bytes) {
+    if (!bytes) return '0 KB';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, index);
+    return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+function escapeHtml(value) {
+    return (value ?? '').toString().replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
 }

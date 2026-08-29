@@ -646,6 +646,113 @@ tr:hover td {
     gap: 0.8rem;
 }
 
+.attachment-section {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.file-drop {
+    min-height: 122px;
+    border: 1px dashed #9ab5a8;
+    border-radius: 0.75rem;
+    background: #f8fbf8;
+    display: grid;
+    place-items: center;
+    gap: 0.25rem;
+    padding: 1.25rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.file-drop input {
+    display: none;
+}
+
+.file-drop i {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.file-drop strong {
+    color: var(--text-main);
+}
+
+.file-drop span {
+    max-width: 440px;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    text-transform: none;
+}
+
+.attachment-list,
+.attachment-viewer {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.attachment-list {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.attachment-chip,
+.attachment-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    background: white;
+}
+
+.attachment-chip i,
+.attachment-preview > i {
+    color: var(--primary);
+    font-size: 1.15rem;
+}
+
+.attachment-chip span,
+.attachment-preview strong {
+    overflow: hidden;
+    color: var(--text-main);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-chip small,
+.attachment-preview span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.attachment-preview img {
+    width: 96px;
+    height: 72px;
+    border-radius: 0.45rem;
+    object-fit: cover;
+    border: 1px solid var(--border);
+}
+
+.attachment-preview div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.attachment-preview a {
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.empty-attachments {
+    color: var(--text-muted);
+}
+
 .form-grid label {
     display: flex;
     flex-direction: column;

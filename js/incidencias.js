@@ -22,6 +22,8 @@ let chartTrend = null;
 // IndexedDB Helper for Persistent File Handle
 const DB_NAME = 'IncidenciasFilesDB';
 const STORE_NAME = 'handles';
+const ATTACHMENT_DB_NAME = 'IncidenciasAttachmentsDB';
+const ATTACHMENT_STORE = 'attachments';
 const LocalDB = {
     async get(key) {
         return new Promise((resolve) => {
@@ -50,6 +52,38 @@ const LocalDB = {
 };
 
 let fileHandle = null;
+
+function openAttachmentDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(ATTACHMENT_DB_NAME, 1);
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(ATTACHMENT_STORE)) {
+                db.createObjectStore(ATTACHMENT_STORE, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getAttachment(id) {
+    if (!id) return null;
+    try {
+        const db = await openAttachmentDB();
+        const record = await new Promise((resolve) => {
+            const tx = db.transaction(ATTACHMENT_STORE, 'readonly');
+            const req = tx.objectStore(ATTACHMENT_STORE).get(id);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        });
+        db.close();
+        return record;
+    } catch (error) {
+        console.warn('Attachment read error', error);
+        return null;
+    }
+}
 
 // Mappings (Strict Matches)
 const FIELD_MAP = {
@@ -605,7 +639,7 @@ function detailField(label, value, full = false) {
     `;
 }
 
-function openIncidentModal(id) {
+async function openIncidentModal(id) {
     const item = STATE.incidencias.find(x => x.id === id);
     if (!item) return;
 
@@ -625,6 +659,10 @@ function openIncidentModal(id) {
             ${detailField('Descripción completa', item.descripcion, true)}
             ${detailField('Solución inmediata', item.accion, true)}
             ${detailField('Datos específicos', item.notas_internas, true)}
+            <div class="detail-field full">
+                <span class="detail-label">Adjuntos</span>
+                <div id="attachmentViewer" class="attachment-viewer"></div>
+            </div>
             ${detailField('Fecha de finalización', formatDateTime(item.fecha_cierre), true)}
         </div>
     `;
@@ -632,12 +670,67 @@ function openIncidentModal(id) {
     const modal = document.getElementById('incidentModal');
     modal.classList.add('active');
     modal.setAttribute('aria-hidden', 'false');
+    await renderIncidentAttachments(item);
 }
 
 function closeIncidentModal() {
     const modal = document.getElementById('incidentModal');
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden', 'true');
+    document.querySelectorAll('[data-object-url]').forEach(element => {
+        URL.revokeObjectURL(element.dataset.objectUrl);
+    });
+}
+
+async function renderIncidentAttachments(item) {
+    const viewer = document.getElementById('attachmentViewer');
+    if (!viewer) return;
+
+    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+    if (!attachments.length) {
+        viewer.innerHTML = '<span class="empty-attachments">Sin adjuntos</span>';
+        return;
+    }
+
+    viewer.innerHTML = '';
+    for (const meta of attachments) {
+        const record = await getAttachment(meta.id);
+        const card = document.createElement('div');
+        card.className = 'attachment-preview';
+
+        if (!record?.blob) {
+            card.innerHTML = `
+                <i class="fa-solid fa-file-circle-exclamation"></i>
+                <div>
+                    <strong>${escapeHtml(meta.name)}</strong>
+                    <span>No disponible en este navegador</span>
+                </div>
+            `;
+            viewer.appendChild(card);
+            continue;
+        }
+
+        const objectUrl = URL.createObjectURL(record.blob);
+        card.dataset.objectUrl = objectUrl;
+        const isImage = (record.type || meta.type || '').startsWith('image/');
+        card.innerHTML = isImage ? `
+            <a href="${objectUrl}" target="_blank" rel="noopener">
+                <img src="${objectUrl}" alt="${escapeHtml(record.name || meta.name)}">
+            </a>
+            <div>
+                <strong>${escapeHtml(record.name || meta.name)}</strong>
+                <span>${formatBytes(record.size || meta.size)}</span>
+            </div>
+        ` : `
+            <i class="fa-solid fa-file"></i>
+            <div>
+                <strong>${escapeHtml(record.name || meta.name)}</strong>
+                <span>${formatBytes(record.size || meta.size)}</span>
+                <a href="${objectUrl}" download="${escapeHtml(record.name || meta.name)}">Descargar archivo</a>
+            </div>
+        `;
+        viewer.appendChild(card);
+    }
 }
 
 function openIncidentFormModal() {
@@ -733,6 +826,13 @@ window.updateResponsable = function (id, v) { const i = STATE.incidencias.find(x
 function getBadgeClass(s) { return ({ 'Pendiente': 'badge-pendiente', 'En proceso': 'badge-proceso', 'Resuelto': 'badge-resuelto', 'Cerrado': 'badge-cerrado' }[s] || 'badge-cerrado'); }
 function formatDate(d) { return (!d || isNaN(new Date(d))) ? '-' : new Date(d).toLocaleDateString('es-ES'); }
 function formatDateTime(d) { return (!d || isNaN(new Date(d))) ? '-' : new Date(d).toLocaleString('es-ES'); }
+function formatBytes(bytes) {
+    if (!bytes) return '0 KB';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, index);
+    return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
 function populateSelects() {
     const sel = document.getElementById('filterHotel');
     const cur = sel.value;
@@ -748,7 +848,24 @@ function showLoading(s) {
 }
 function showToast(m, t) { console.log(m); }
 function exportToExcel() {
-    const ws = XLSX.utils.json_to_sheet(STATE.incidencias);
+    const exportRows = STATE.incidencias.map(item => ({
+        id: item.id_original || item.id,
+        fecha_creacion: formatDateTime(item.fecha_creacion),
+        hotel: item.hotel,
+        tipo: item.tipo,
+        departamento: item.departamento,
+        descripcion: item.descripcion,
+        estado: item.estado,
+        responsable: item.responsable,
+        cliente: item.cliente,
+        solicita_respuesta: item.solicita_respuesta,
+        telefono: item.telefono,
+        correo_respuesta: item.correo_respuesta,
+        solucion: item.accion,
+        datos_especificos: item.notas_internas,
+        adjuntos: Array.isArray(item.attachments) ? item.attachments.map(file => file.name).join('; ') : ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Incidencias");
     XLSX.writeFile(wb, "Reporte_Incidencias.xlsx");
