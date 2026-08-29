@@ -2,6 +2,7 @@ const DB_KEY = 'incidencias_db';
 const ATTACHMENT_DB_NAME = 'IncidenciasAttachmentsDB';
 const ATTACHMENT_STORE = 'attachments';
 const NOTIFICATION_EMAIL = 'comunicaciones@hotelguadiana.es';
+const NOTIFICATION_WEBHOOK_URL = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
@@ -155,8 +156,14 @@ async function saveIncident(event) {
     updateRecordType('Queja');
     renderSelectedAttachments();
 
+    let notificationSent = false;
     if (document.getElementById('formNotifyEmail').checked) {
-        openEmailNotification(item);
+        notificationSent = await sendAutomaticNotification(item);
+    }
+    if (document.getElementById('formNotifyEmail').checked && NOTIFICATION_WEBHOOK_URL) {
+        showMessage(notificationSent
+            ? `Incidencia ${item.id_original} guardada y aviso enviado.`
+            : `Incidencia ${item.id_original} guardada. No se pudo enviar el aviso automático.`);
     }
 }
 
@@ -267,40 +274,41 @@ function showMessage(message) {
     el.classList.toggle('active', Boolean(message));
 }
 
-function openEmailNotification(item) {
+async function sendAutomaticNotification(item) {
+    if (!NOTIFICATION_WEBHOOK_URL) return false;
     const subject = `[Q-Centros] Nuevo registro ${item.tipo} - ${item.hotel}`;
     const attachmentNames = Array.isArray(item.attachments) && item.attachments.length
-        ? item.attachments.map(file => `- ${file.name}`).join('\n')
-        : 'Sin adjuntos';
-    const body = [
-        'Nuevo registro en Q-Centros',
-        '',
-        `ID: ${item.id_original}`,
-        `Tipo: ${item.tipo}`,
-        `Centro: ${item.hotel}`,
-        `Zona o servicio: ${item.departamento}`,
-        `Fecha: ${new Date(item.fecha_creacion).toLocaleString('es-ES')}`,
-        `Registrado por: ${item.usuario_registro}`,
-        `Cliente: ${item.cliente || '-'}`,
-        `Solicita respuesta: ${item.solicita_respuesta || '-'}`,
-        `Teléfono: ${item.telefono || '-'}`,
-        `Correo respuesta: ${item.correo_respuesta || '-'}`,
-        '',
-        'Descripción:',
-        item.descripcion || '-',
-        '',
-        'Actuación / solución inicial:',
-        item.accion || '-',
-        '',
-        'Datos específicos:',
-        item.notas_internas || '-',
-        '',
-        'Adjuntos registrados en la aplicación:',
-        attachmentNames
-    ].join('\n');
+        ? item.attachments.map(file => file.name)
+        : [];
 
-    const mailto = `mailto:${NOTIFICATION_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
+    try {
+        const response = await fetch(NOTIFICATION_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to: NOTIFICATION_EMAIL,
+                subject,
+                id: item.id_original,
+                tipo: item.tipo,
+                centro: item.hotel,
+                zona: item.departamento,
+                fecha: new Date(item.fecha_creacion).toLocaleString('es-ES'),
+                registradoPor: item.usuario_registro,
+                cliente: item.cliente || '',
+                solicitaRespuesta: item.solicita_respuesta || '',
+                telefono: item.telefono || '',
+                correoRespuesta: item.correo_respuesta || '',
+                descripcion: item.descripcion || '',
+                actuacion: item.accion || '',
+                datosEspecificos: item.notas_internas || '',
+                adjuntos: attachmentNames
+            })
+        });
+        return response.ok;
+    } catch (error) {
+        console.warn('Notification error', error);
+        return false;
+    }
 }
 
 function formatBytes(bytes) {
