@@ -8,10 +8,10 @@ const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xbgjlpnr';
 // Rellena con tu dirección de QuickConnect o IP, p.ej. "https://tuempresa.synology.me"
 const SYNOLOGY_URL = 'https://synr-fr4.cloud-hotel.direct.quickconnect.to:35254'; 
 // Usuario creado en tu DSM con permisos de escritura/subida en la carpeta de incidencias
-const SYNOLOGY_USER = 'incidencias_upload';
+const SYNOLOGY_USER = 'Natalio';
 const SYNOLOGY_PASS = 'VbH5Q6&FrJGc%#3D74';
 // Ruta exacta donde se guardarán los archivos en Synology
-const SYNOLOGY_FOLDER = '/Carpeta de equipo/compartidas A B C/B/Reclamaciones';
+const SYNOLOGY_FOLDER = '/compartidas A B C/B/Reclamaciones';
 const SYNOLOGY_TIMEOUT = 10000; // ms máximo por subida para evitar bloqueos
 
 
