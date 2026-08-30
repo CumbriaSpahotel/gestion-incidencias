@@ -286,8 +286,8 @@ function fileToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
 }
 
 // ── Synology FileStation API (Vía Cloud Function Proxy) ────────────────
-const CLOUD_FUNCTION_UPLOAD = 'https://us-central1-objetos-perdidos-hoteles.cloudfunctions.net/uploadSynology';
-const CLOUD_FUNCTION_VIEW = 'https://us-central1-objetos-perdidos-hoteles.cloudfunctions.net/fetchSynologyImage';
+const CLOUD_FUNCTION_UPLOAD = 'https://uploadsynology-rte4bulchq-uc.a.run.app';
+const CLOUD_FUNCTION_VIEW = 'https://fetchsynologyimage-rte4bulchq-uc.a.run.app';
 
 async function uploadFilesToSynologyCloudFunction(files, incidentId, hotelName) {
     const results = [];
