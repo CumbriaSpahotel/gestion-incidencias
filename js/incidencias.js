@@ -934,10 +934,6 @@ async function openIncidentModal(id) {
                             <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}">
                         </label>
                     </div>
-                    <div class="form-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
-                        </button>
                     </div>
                 </form>
             </div>
