@@ -263,25 +263,14 @@ async function saveAttachments(incidentId) {
         const recordId = `${incidentId}_att_${index}`;
         let downloadURL = null;
         
-        // 1. Intentar subir a Firebase Storage si está disponible (timeout de 2 segundos para no bloquear)
-        if (typeof storage !== 'undefined' && storage) {
-            try {
-                const storageRef = storage.ref(`incidencias/${incidentId}/${file.name}`);
-                const uploadPromise = storageRef.put(file).then(snapshot => snapshot.ref.getDownloadURL());
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Storage Timeout/CORS')), 2000));
-                downloadURL = await Promise.race([uploadPromise, timeoutPromise]);
-            } catch (error) {
-                console.warn("Storage no disponible o bloqueado por CORS. Usando codificación directa para nube:", error);
-            }
-        }
-
-        // 2. Si Storage no devolvió URL (ej. por CORS), usamos Data URL optimizada para que viaje por Firestore a todos los dispositivos
-        if (!downloadURL) {
-            try {
-                downloadURL = await fileToDataUrl(file);
-            } catch (e) {
-                console.warn("Error generando Data URL:", e);
-            }
+        // Adjuntos: guardar como Data URL comprimida (compatible sin CORS).
+        // Cuando se configure CORS en Firebase Storage, se puede habilitar el bloque de arriba.
+        // NOTA: Firebase Storage queda desactivado hasta resolver CORS en el bucket.
+        // Para activarlo: gsutil cors set cors.json gs://centros-incidencias.firebasestorage.app
+        try {
+            downloadURL = await fileToDataUrl(file);
+        } catch (e) {
+            console.warn("Error generando Data URL para adjunto:", e);
         }
         
         const record = {
