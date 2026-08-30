@@ -1021,7 +1021,7 @@ async function renderIncidentAttachments(item) {
         const card = document.createElement('div');
         card.className = 'attachment-preview';
 
-        if (!record?.blob) {
+        if (!record?.blob && !meta.url) {
             card.innerHTML = `
                 <i class="fa-solid fa-file-circle-exclamation"></i>
                 <div>
@@ -1033,9 +1033,9 @@ async function renderIncidentAttachments(item) {
             continue;
         }
 
-        const objectUrl = URL.createObjectURL(record.blob);
-        card.dataset.objectUrl = objectUrl;
-        const isImage = (record.type || meta.type || '').startsWith('image/');
+        const objectUrl = record?.blob ? URL.createObjectURL(record.blob) : meta.url;
+        if(record?.blob) card.dataset.objectUrl = objectUrl;
+        const isImage = (meta.type || "").startsWith("image/");
         card.innerHTML = isImage ? `
             <a href="${objectUrl}" target="_blank" rel="noopener">
                 <img src="${objectUrl}" alt="${escapeHtml(record.name || meta.name)}">
@@ -1502,4 +1502,5 @@ function setupKanbanEvents() {
   });
 }
 document.addEventListener('DOMContentLoaded', setupKanbanEvents);
+
 
