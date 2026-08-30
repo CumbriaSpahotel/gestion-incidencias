@@ -113,13 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupCharts();
     renderDashboard();
 
-    // Attempt local handle restore first
-    await checkSavedHandle();
-
-    window.refreshIntervalId = setInterval(() => {
-        if (fileHandle) readLocalFile(true); // Silent refresh
-        else if (canUseNetworkSync()) loadData(true);
-    }, CONFIG.refreshInterval);
+    // Firebase handles real-time updates via onSnapshot automatically.
 });
 
 function isFilePage() {
@@ -231,23 +225,19 @@ function setupEventListeners() {
         STATE.filters.estado = e.target.value; renderTable();
     });
 
-    // Smart Refresh
+    // Smart Refresh (Now just placebo as Firebase handles it realtime, but users like buttons)
     document.getElementById('btnRefresh').addEventListener('click', () => {
-        if (fileHandle) readLocalFile();
-        else if (canUseNetworkSync()) loadData();
-        else showLocalModeUI();
+        showLoading(true);
+        setTimeout(() => {
+            showLoading(false);
+            showToast("Datos actualizados correctamente", "success");
+        }, 500);
     });
 
     document.getElementById('btnReport').addEventListener('click', generateManagementReport);
     document.getElementById('btnExport').addEventListener('click', exportToExcel);
 
-    // Legacy File Input Fallback
-    document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-
-    document.getElementById('btnUpload').addEventListener('click', (event) => {
-        event.preventDefault();
-        pickLocalFile();
-    });
+    // Legacy excel listeners removed
 
     // Dark Mode Toggle
     const btnTheme = document.getElementById('btnToggleTheme');
