@@ -13,3 +13,6 @@ firebase.initializeApp(firebaseConfig);
 
 // Inicializar Cloud Firestore y obtener una referencia al servicio
 const db = firebase.firestore();
+
+// Inicializar Cloud Storage
+const storage = typeof firebase.storage === 'function' ? firebase.storage() : null;

@@ -191,19 +191,43 @@ async function saveAttachments(incidentId) {
     const files = Array.from(document.getElementById('formAdjuntos').files || []);
     if (!files.length) return [];
 
-    const records = files.map((file, index) => ({
-        id: `${incidentId}_att_${index}`,
-        incidentId,
-        name: file.name,
-        type: file.type || 'application/octet-stream',
-        size: file.size,
-        createdAt: new Date().toISOString(),
-        blob: file
-    }));
+    const records = [];
+    
+    for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        const recordId = `${incidentId}_att_${index}`;
+        let downloadURL = null;
+        
+        // Si Firebase Storage está disponible, lo subimos
+        if (typeof storage !== 'undefined' && storage) {
+            try {
+                const storageRef = storage.ref(`incidencias/${incidentId}/${file.name}`);
+                const snapshot = await storageRef.put(file);
+                downloadURL = await snapshot.ref.getDownloadURL();
+            } catch (error) {
+                console.error("Error uploading file to Firebase:", error);
+            }
+        }
+        
+        const record = {
+            id: recordId,
+            incidentId,
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            createdAt: new Date().toISOString(),
+            blob: file, // Para mantener compatibilidad con local por si acaso
+            url: downloadURL // URL pública de Firebase
+        };
+        
+        records.push(record);
+    }
 
-    const db = await openAttachmentDB();
-    await Promise.all(records.map(record => putAttachment(db, record)));
-    db.close();
+    // Seguimos guardando en IndexedDB por seguridad local
+    const localDb = await openAttachmentDB();
+    await Promise.all(records.map(record => putAttachment(localDb, record)));
+    localDb.close();
+    
     return records;
 }
 
