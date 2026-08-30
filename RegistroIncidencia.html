@@ -111,18 +111,22 @@
                     <div class="form-section">
                         <span class="section-kicker">Datos básicos</span>
                         <div class="form-grid">
-                        <label>
-                            <span>Zona o servicio</span>
-                            <input id="formDepartamento" type="text" placeholder="Habitaciones, buffet, parking..." required>
-                        </label>
-                        <label>
-                            <span>Registrado por</span>
-                            <input id="formUsuario" type="text" placeholder="Nombre">
-                        </label>
-                        <label class="full">
-                            <span id="descriptionLabel">Descripción de la queja</span>
-                            <textarea id="formDescripcion" rows="7" placeholder="Describe qué ha ocurrido, quién lo comunicó, cuándo, dónde y cualquier dato relevante." required></textarea>
-                        </label>
+                            <label>
+                                <span>Zona o servicio</span>
+                                <input id="formDepartamento" type="text" placeholder="Habitaciones, buffet, parking..." required>
+                            </label>
+                            <label>
+                                <span>Registrado por</span>
+                                <input id="formUsuario" type="text" placeholder="Nombre">
+                            </label>
+                            <label>
+                                <span>Email de quien registra</span>
+                                <input id="formEmailUsuario" type="email" placeholder="tu.email@hotel...">
+                            </label>
+                            <label class="full">
+                                <span id="descriptionLabel">Descripción de la queja</span>
+                                <textarea id="formDescripcion" rows="7" placeholder="Describe qué ha ocurrido, quién lo comunicó, cuándo, dónde y cualquier dato relevante." required></textarea>
+                            </label>
                         </div>
                     </div>
 
@@ -157,8 +161,8 @@
                                 <input id="formTelefono" type="text" placeholder="Opcional">
                             </label>
                             <label>
-                                <span>Correo de respuesta</span>
-                                <input id="formCorreoRespuesta" type="email" placeholder="Opcional">
+                                <span>Email / Correo del cliente</span>
+                                <input id="formCorreoRespuesta" type="email" placeholder="cliente@correo.com">
                             </label>
                             <label>
                                 <span>Compensación ofrecida</span>
@@ -240,6 +244,8 @@
                         </label>
                         <div id="attachmentList" class="attachment-list" aria-live="polite"></div>
                     </div>
+
+                    <div id="formSaveMessage" class="save-message" aria-live="polite"></div>
 
                     <div class="form-actions">
                         <button type="button" id="btnClearForm" class="btn btn-secondary">
