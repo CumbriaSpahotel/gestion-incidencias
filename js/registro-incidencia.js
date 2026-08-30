@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
     setupPickers();
     updateRecordType('Queja');
+    checkSynologyCors();
     document.getElementById('standaloneIncidentForm').addEventListener('submit', saveIncident);
     document.getElementById('formAdjuntos').addEventListener('change', renderSelectedAttachments);
     document.getElementById('btnClearForm').addEventListener('click', () => {
@@ -32,6 +33,53 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage('');
     });
 });
+
+async function checkSynologyCors() {
+    if (!SYNOLOGY_URL || SYNOLOGY_URL.includes('XXXXXXX') || SYNOLOGY_URL.includes('miempresa')) {
+        return;
+    }
+    
+    const bannerId = 'synology-cors-warning';
+    const existing = document.getElementById(bannerId);
+    if (existing) existing.remove();
+
+    try {
+        const res = await fetch(`${SYNOLOGY_URL}/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=all`, {
+            method: 'GET',
+            credentials: 'omit'
+        });
+        if (res.ok) {
+            console.log("✔ Conexión CORS con Synology verificada con éxito.");
+            return;
+        }
+    } catch (err) {
+        console.warn("⚠️ Error de conexión o CORS bloqueado en Synology:", err);
+        
+        const form = document.getElementById('standaloneIncidentForm');
+        if (form) {
+            const banner = document.createElement('div');
+            banner.id = bannerId;
+            banner.style.background = '#fffbeb';
+            banner.style.border = '1px solid #fef3c7';
+            banner.style.borderRadius = '0.5rem';
+            banner.style.padding = '1rem';
+            banner.style.marginBottom = '1.25rem';
+            banner.style.color = '#b45309';
+            banner.style.fontSize = '0.9rem';
+            banner.style.lineHeight = '1.5';
+            
+            banner.innerHTML = `
+                <strong>⚠️ Conectividad con Synology NAS no verificada (CORS)</strong><br>
+                El navegador ha bloqueado la conexión directa a tu NAS de Synology. Esto suele ocurrir si no has activado la opción CORS en tu NAS. Para solucionarlo:<br>
+                1. Entra a tu Synology NAS (**DSM**).<br>
+                2. Ve a **Panel de Control** > **Seguridad** > **Servicio HTTP**.<br>
+                3. Activa la casilla **Habilitar CORS (Cross-Origin Resource Sharing)** y guarda los cambios.<br>
+                <small style="color: #d97706; display: block; margin-top: 5px;">* Nota: Mientras no actives esto, los archivos adjuntos se guardarán como imágenes optimizadas (Base64) en Firestore para que no se pierdan, pero no se registrarán en la carpeta de tu Synology.</small>
+            `;
+            form.insertBefore(banner, form.firstChild);
+        }
+    }
+}
 
 const TYPE_CONFIG = {
     Queja: {
