@@ -9,7 +9,7 @@ const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xbgjlpnr';
 const SYNOLOGY_URL = 'https://cloud-hotel.quickconnect.to'; 
 // Usuario creado en tu DSM con permisos de escritura/subida en la carpeta de incidencias
 const SYNOLOGY_USER = 'incidencias_upload';
-const SYNOLOGY_PASS = 'CONTRASEÑA_DE_USUARIO_AQUI';
+const SYNOLOGY_PASS = 'VbH5Q6&FrJGc%#3D74';
 // Ruta exacta donde se guardarán los archivos en Synology
 const SYNOLOGY_FOLDER = '/Carpeta de equipo/compartidas A B C/B/Reclamaciones';
 const SYNOLOGY_TIMEOUT = 10000; // ms máximo por subida para evitar bloqueos
