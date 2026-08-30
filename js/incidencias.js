@@ -1448,12 +1448,23 @@ function exportToExcel() {
 function renderKanban() {
   const board = document.querySelector('.kanban-board');
   if (!board) return;
+  
+  const normalizeState = (s) => {
+    if (!s) return 'Pendiente';
+    const l = s.toLowerCase();
+    if (l.includes('pendiente')) return 'Pendiente';
+    if (l.includes('proceso')) return 'En proceso';
+    if (l.includes('resuelto')) return 'Resuelto';
+    if (l.includes('cerrado')) return 'Cerrado';
+    return 'Pendiente';
+  };
+
   ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado'].forEach(status => {
     const col = board.querySelector('.kanban-column[data-status="' + status + '"] .kanban-cards');
     const countBadge = board.querySelector('.kanban-column[data-status="' + status + '"] .count');
     if (!col) return;
     col.innerHTML = '';
-    const items = STATE.incidencias.filter(x => (x.estado || 'Pendiente') === status);
+    const items = STATE.incidencias.filter(x => normalizeState(x.estado) === status);
     if(countBadge) countBadge.innerText = items.length;
     items.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).forEach(item => {
       const card = document.createElement('div');
