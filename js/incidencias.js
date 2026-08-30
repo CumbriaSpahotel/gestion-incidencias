@@ -728,7 +728,7 @@ function renderTable() {
             <td>${escapeHtml(item.departamento)}</td>
             <td style="max-width: 300px;">
                 <div class="truncate" title="${escapeHtml(item.descripcion)}">
-                    <span style="font-weight:bold; color:var(--primary); margin-right:5px;">[${item.id_original || 'S/N'}]</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal; margin-right: 5px;">#${item.id_original || 'S/N'}</span>
                     ${escapeHtml(item.descripcion || '')}
                 </div>
             </td>
@@ -1471,7 +1471,7 @@ function renderKanban() {
       card.className = 'kanban-card';
       card.draggable = true;
       card.dataset.id = item.id;
-      card.innerHTML = `<h4><span style="color:var(--primary); font-size:0.8rem; margin-right:5px;">[${item.id_original || 'S/N'}]</span>${escapeHtml(item.tipo || 'Incidencia')}</h4><p>${escapeHtml(item.descripcion || '')}</p><div class="kanban-meta"><span>${escapeHtml(item.hotel || '-')}</span><span>${escapeHtml(item.responsable || 'Sin asignar')}</span></div>`;
+      card.innerHTML = `<h4><span style="color:var(--text-muted); font-size:0.75rem; font-weight:normal; margin-right:5px;">#${item.id_original || 'S/N'}</span>${escapeHtml(item.tipo || 'Incidencia')}</h4><p>${escapeHtml(item.descripcion || '')}</p><div class="kanban-meta"><span>${escapeHtml(item.hotel || '-')}</span><span>${escapeHtml(item.responsable || 'Sin asignar')}</span></div>`;
       card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', item.id); card.classList.add('dragging'); });
       card.addEventListener('dragend', () => card.classList.remove('dragging'));
       card.addEventListener('click', () => openIncidentModal(item.id));
