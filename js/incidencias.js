@@ -1817,5 +1817,29 @@ async function ejecutarEliminacionIncidencia() {
     alert(`Incidencia #${idOriginal} eliminada definitivamente de todos los sitios.`);
 }
 
+function solicitarEliminarDesdeModal() {
+    if (!currentModalIncidentId) return;
+    
+    // Si la sesión de administración no está desbloqueada, pedir el PIN
+    if (!STATE.isAdminUnlocked) {
+        const enteredPin = prompt('Acción restringida a Administración.\nIntroduzca el PIN de administración (PIN por defecto: 1234):');
+        if (enteredPin === null) return; // cancelado
+        if (enteredPin.trim() !== getAdminPin()) {
+            alert('PIN de administración incorrecto. Solo administración puede eliminar incidencias.');
+            return;
+        }
+        // Desbloquear sesión de administración
+        STATE.isAdminUnlocked = true;
+        sessionStorage.setItem('admin_unlocked', 'true');
+        const authCard = document.getElementById('adminAuthCard');
+        const dashContent = document.getElementById('adminDashboardContent');
+        if (authCard) authCard.style.display = 'none';
+        if (dashContent) dashContent.style.display = 'block';
+    }
+    
+    // Abrir confirmación de eliminación para la incidencia actual
+    confirmarEliminarIncidencia(currentModalIncidentId);
+}
+
 
 
