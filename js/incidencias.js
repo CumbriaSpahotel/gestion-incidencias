@@ -993,7 +993,7 @@ function saveReceptionManagement(event) {
     
     renderDashboard();
     showToast('Gestión guardada', 'success');
-    openIncidentModal(item.id);
+    closeIncidentModal();
 }
 
 function switchView(view) {
