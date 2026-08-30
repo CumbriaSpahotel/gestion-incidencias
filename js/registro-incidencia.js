@@ -6,7 +6,7 @@ const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xbgjlpnr';
 
 // ── CONFIGURACIÓN DE SYNOLOGY NAS ──────────────────────────────────────
 // Rellena con tu dirección de QuickConnect o IP, p.ej. "https://tuempresa.synology.me"
-const SYNOLOGY_URL = 'https://synr-fr4.cloud-hotel.direct.quickconnect.to:35254'; 
+const SYNOLOGY_URL = 'https://cloud-hotel.fr4.quickconnect.to'; 
 // Usuario creado en tu DSM con permisos de escritura/subida en la carpeta de incidencias
 const SYNOLOGY_USER = 'Natalio';
 const SYNOLOGY_PASS = 'VbH5Q6&FrJGc%#3D74';
