@@ -187,9 +187,19 @@ function initLocalState() {
                 return; // onSnapshot volverá a saltar cuando se guarden
             }
 
-            // Overwrite state with Firebase data
+            // Merge state with Firebase data so we don't lose local Excel items
             if (firebaseItems.length > 0 || snapshot.docs.length === 0) {
-                STATE.incidencias = firebaseItems;
+                const fbMap = new Map(firebaseItems.map(i => [i.id, i]));
+                
+                // Update existing items with Firebase data
+                STATE.incidencias = STATE.incidencias.map(item => fbMap.has(item.id) ? fbMap.get(item.id) : item);
+                
+                // Add any new items from Firebase
+                const localIds = new Set(STATE.incidencias.map(i => i.id));
+                firebaseItems.forEach(fi => {
+                    if (!localIds.has(fi.id)) STATE.incidencias.push(fi);
+                });
+
                 STATE.lastUpdate = new Date().toISOString();
                 updateLastUpdateUI();
                 renderDashboard();
@@ -978,16 +988,7 @@ function saveReceptionManagement(event) {
     saveState();
     
     if (typeof db !== 'undefined') {
-        db.collection('incidencias').doc(item.id).update({
-            estado: item.estado,
-            responsable: item.responsable,
-            accion: item.accion,
-            gestion_direccion: item.gestion_direccion,
-            notas_internas: item.notas_internas,
-            resolucion: item.resolucion,
-            fecha_cierre: item.fecha_cierre,
-            fecha_ultima_gestion: item.fecha_ultima_gestion
-        }).catch(console.error);
+        db.collection('incidencias').doc(item.id).set(item).catch(console.error);
     }
     
     renderDashboard();
