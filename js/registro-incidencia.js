@@ -186,7 +186,17 @@ async function saveIncident(event) {
         }
 
         updateCurrentTotal();
-        showMessage(`¡Incidencia ${item.id_original} guardada con éxito!`);
+        
+        const failedSynology = attachments.some(att => !att.synologyPath);
+        let statusText = `¡Incidencia ${item.id_original} guardada con éxito!`;
+        if (attachments.length > 0) {
+            if (failedSynology) {
+                statusText = `¡Incidencia ${item.id_original} guardada! ⚠️ Los adjuntos se guardaron en la nube (Base64) pero falló la subida a tu Synology NAS (revisa el CORS en tu NAS).`;
+            } else {
+                statusText = `¡Incidencia ${item.id_original} guardada! 📂 Los adjuntos se han subido con éxito a tu Synology NAS.`;
+            }
+        }
+        showMessage(statusText);
         
         // Reset form y quitar clase de validación visual
         const standaloneForm = document.getElementById('standaloneIncidentForm');
@@ -202,9 +212,8 @@ async function saveIncident(event) {
 
         sendAutomaticNotification(item).then(notificationSent => {
             if (NOTIFICATION_WEBHOOK_URL) {
-                showMessage(notificationSent
-                    ? `¡Incidencia ${item.id_original} guardada y aviso enviado!`
-                    : `Incidencia ${item.id_original} guardada.`);
+                const finalMsg = statusText + (notificationSent ? " (Notificación enviada)" : " (Error al enviar notificación)");
+                showMessage(finalMsg);
             }
         }).catch(console.warn);
 
