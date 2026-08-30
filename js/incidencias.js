@@ -166,7 +166,14 @@ function initLocalState() {
         db.collection('incidencias').onSnapshot((snapshot) => {
             const firebaseItems = [];
             snapshot.forEach((doc) => {
-                firebaseItems.push({ ...doc.data(), id: doc.id });
+                const data = doc.data();
+                if (data.fecha_creacion && data.fecha_creacion.toDate) {
+                    data.fecha_creacion = data.fecha_creacion.toDate().toISOString();
+                }
+                if (data.fecha_cierre && data.fecha_cierre.toDate) {
+                    data.fecha_cierre = data.fecha_cierre.toDate().toISOString();
+                }
+                firebaseItems.push({ ...data, id: doc.id });
             });
             
             // Si Firebase está vacío pero tenemos datos locales, los subimos (Migración)
@@ -719,7 +726,12 @@ function renderTable() {
             <td><span class="font-medium">${escapeHtml(item.hotel)}</span></td>
             <td>${escapeHtml(item.tipo)}</td>
             <td>${escapeHtml(item.departamento)}</td>
-            <td style="max-width: 300px;"><div class="truncate" title="${escapeHtml(item.descripcion)}">${escapeHtml(item.descripcion)}</div></td>
+            <td style="max-width: 300px;">
+                <div class="truncate" title="${escapeHtml(item.descripcion)}">
+                    <span style="font-weight:bold; color:var(--primary); margin-right:5px;">[${item.id_original || 'S/N'}]</span>
+                    ${escapeHtml(item.descripcion || '')}
+                </div>
+            </td>
             <td><span class="badge ${getBadgeClass(item.estado)}">${escapeHtml(item.estado || 'Pendiente')}</span></td>
             <td><span style="color: var(--text-muted);">${escapeHtml(item.responsable || 'Sin asignar')}</span></td>
         `;
@@ -1432,3 +1444,51 @@ function exportToExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Incidencias");
     XLSX.writeFile(wb, "Reporte_Incidencias.xlsx");
 }
+
+function renderKanban() {
+  const board = document.querySelector('.kanban-board');
+  if (!board) return;
+  ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado'].forEach(status => {
+    const col = board.querySelector('.kanban-column[data-status="' + status + '"] .kanban-cards');
+    const countBadge = board.querySelector('.kanban-column[data-status="' + status + '"] .count');
+    if (!col) return;
+    col.innerHTML = '';
+    const items = STATE.incidencias.filter(x => (x.estado || 'Pendiente') === status);
+    if(countBadge) countBadge.innerText = items.length;
+    items.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'kanban-card';
+      card.draggable = true;
+      card.dataset.id = item.id;
+      card.innerHTML = \<h4><span style="color:var(--primary); font-size:0.8rem; margin-right:5px;">[\]</span>\</h4><p>\</p><div class="kanban-meta"><span>\</span><span>\</span></div>\;
+      card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', item.id); card.classList.add('dragging'); });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      card.addEventListener('click', () => openIncidentModal(item.id));
+      col.appendChild(card);
+    });
+  });
+}
+function setupKanbanEvents() {
+  document.querySelectorAll('.kanban-column').forEach(col => {
+    col.addEventListener('dragover', e => { e.preventDefault(); const cards = col.querySelector('.kanban-cards'); cards.style.background = 'rgba(0,0,0,0.05)'; });
+    col.addEventListener('dragleave', e => { const cards = col.querySelector('.kanban-cards'); cards.style.background = ''; });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      const cards = col.querySelector('.kanban-cards');
+      cards.style.background = '';
+      const id = e.dataTransfer.getData('text/plain');
+      const newStatus = col.dataset.status;
+      const item = STATE.incidencias.find(x => x.id === id);
+      if(item && item.estado !== newStatus) {
+        item.estado = newStatus;
+        if(newStatus==='Cerrado' || newStatus==='Resuelto') item.fecha_cierre = new Date().toISOString();
+        saveState();
+        if(typeof db !== 'undefined') { db.collection('incidencias').doc(item.id).update({estado: item.estado, fecha_cierre: item.fecha_cierre}).catch(console.error); }
+        renderDashboard();
+        if(typeof showToast === 'function') showToast('Estado actualizado', 'success');
+      }
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', setupKanbanEvents);
+
