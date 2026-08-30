@@ -1057,9 +1057,53 @@ tr:hover td {
     border-color: var(--primary);
 }
 
+/* ── Campos obligatorios ──────────────────────────────── */
+/* Asterisco rojo automático tras la etiqueta de campos required */
+.form-grid label:has(input[required]) > span::after,
+.form-grid label:has(textarea[required]) > span::after,
+.form-grid label:has(select[required]) > span::after {
+    content: ' *';
+    color: #dc2626;
+    font-weight: 900;
+}
+
+/* Borde rojo en campo obligatorio vacío cuando el formulario detecta el intento de envío */
+.form-submitted .form-grid input[required]:invalid,
+.form-submitted .form-grid textarea[required]:invalid,
+.form-submitted .form-grid select[required]:invalid {
+    border-color: #dc2626;
+    background: #fff5f5;
+    outline: 2px solid #fee2e2;
+}
+
+/* Etiqueta "(opcional)" en campos secundarios */
+.field-optional {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: none;
+    margin-left: 0.3rem;
+    opacity: 0.75;
+}
+
+/* Leyenda al pie del formulario */
+.form-required-note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.form-required-note span {
+    color: #dc2626;
+    font-weight: 900;
+    font-size: 0.88rem;
+}
+
 .form-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.75rem;
     margin-top: 1.25rem;
     padding-top: 1rem;

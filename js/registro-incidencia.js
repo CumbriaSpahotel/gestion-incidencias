@@ -118,7 +118,10 @@ function saveState(state) {
 async function saveIncident(event) {
     event.preventDefault();
 
-    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const form = event.target;
+    form.classList.add('form-submitted');
+
+    const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
         submitBtn.disabled = true;
@@ -167,8 +170,10 @@ async function saveIncident(event) {
         updateCurrentTotal();
         showMessage(`¡Incidencia ${item.id_original} guardada con éxito!`);
         
-        // Reset form
-        document.getElementById('standaloneIncidentForm').reset();
+        // Reset form y quitar clase de validación visual
+        const standaloneForm = document.getElementById('standaloneIncidentForm');
+        standaloneForm.reset();
+        standaloneForm.classList.remove('form-submitted');
         document.getElementById('formHotel').value = 'Secotel Guadiana';
         document.getElementById('formTipo').value = 'Queja';
         setActiveButton('.center-card', 'center', 'Secotel Guadiana');

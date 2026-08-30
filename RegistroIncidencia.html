@@ -117,10 +117,10 @@
                             </label>
                             <label>
                                 <span>Registrado por</span>
-                                <input id="formUsuario" type="text" placeholder="Nombre">
+                                <input id="formUsuario" type="text" placeholder="Nombre" required>
                             </label>
                             <label>
-                                <span>Email de quien registra</span>
+                                <span>Email de quien registra <em class="field-optional">(opcional)</em></span>
                                 <input id="formEmailUsuario" type="email" placeholder="tu.email@hotel...">
                             </label>
                             <label class="full">
@@ -134,12 +134,12 @@
                         <span class="section-kicker">Atención al cliente</span>
                         <div class="form-grid">
                             <label>
-                                <span>Cliente</span>
+                                <span>Cliente <em class="field-optional">(opcional)</em></span>
                                 <input id="formCliente" type="text" placeholder="Nombre del cliente">
                             </label>
                             <label>
                                 <span>Canal de recepción</span>
-                                <select id="formCanal">
+                                <select id="formCanal" required>
                                     <option value="">Sin indicar</option>
                                     <option value="Recepción">Recepción</option>
                                     <option value="Teléfono">Teléfono</option>
@@ -150,27 +150,27 @@
                             </label>
                             <label>
                                 <span>Solicita respuesta</span>
-                                <select id="formSolicitaRespuesta">
+                                <select id="formSolicitaRespuesta" required>
                                     <option value="">Sin indicar</option>
                                     <option value="Sí">Sí</option>
                                     <option value="No">No</option>
                                 </select>
                             </label>
                             <label>
-                                <span>Teléfono</span>
+                                <span>Teléfono <em class="field-optional">(opcional)</em></span>
                                 <input id="formTelefono" type="text" placeholder="Opcional">
                             </label>
                             <label>
-                                <span>Email / Correo del cliente</span>
+                                <span>Email / Correo del cliente <em class="field-optional">(opcional)</em></span>
                                 <input id="formCorreoRespuesta" type="email" placeholder="cliente@correo.com">
                             </label>
                             <label>
-                                <span>Compensación ofrecida</span>
+                                <span>Compensación ofrecida <em class="field-optional">(opcional)</em></span>
                                 <input id="formCompensacion" type="text" placeholder="Cambio, detalle, disculpas...">
                             </label>
                             <label class="full">
                                 <span>Solución inmediata</span>
-                                <textarea id="formAccion" rows="3" placeholder="Indica la respuesta dada al cliente o qué queda pendiente."></textarea>
+                                <textarea id="formAccion" rows="3" placeholder="Indica la respuesta dada al cliente o qué queda pendiente." required></textarea>
                             </label>
                         </div>
                     </div>
@@ -180,7 +180,7 @@
                         <div class="form-grid">
                             <label>
                                 <span>Gravedad</span>
-                                <select id="formGravedad">
+                                <select id="formGravedad" required>
                                     <option value="">Sin indicar</option>
                                     <option value="Baja">Baja</option>
                                     <option value="Media">Media</option>
@@ -190,23 +190,23 @@
                             </label>
                             <label>
                                 <span>Requiere cierre formal</span>
-                                <select id="formCierreFormal">
+                                <select id="formCierreFormal" required>
                                     <option value="">Sin indicar</option>
                                     <option value="Sí">Sí</option>
                                     <option value="No">No</option>
                                 </select>
                             </label>
                             <label>
-                                <span>Responsable inicial</span>
+                                <span>Responsable inicial <em class="field-optional">(opcional)</em></span>
                                 <input id="formResponsableInicial" type="text" placeholder="Mantenimiento, F&B, Recepción...">
                             </label>
                             <label>
-                                <span>Cliente afectado</span>
+                                <span>Cliente afectado <em class="field-optional">(opcional)</em></span>
                                 <input id="formClienteIncidencia" type="text" placeholder="Opcional">
                             </label>
                             <label class="full">
                                 <span>Medida inmediata</span>
-                                <textarea id="formAccionIncidencia" rows="4" placeholder="Retirada de servicio, parte a mantenimiento, cambio de habitación, aviso a dirección..."></textarea>
+                                <textarea id="formAccionIncidencia" rows="4" placeholder="Retirada de servicio, parte a mantenimiento, cambio de habitación, aviso a dirección..." required></textarea>
                             </label>
                         </div>
                     </div>
@@ -215,11 +215,11 @@
                         <span class="section-kicker">Propuesta de mejora</span>
                         <div class="form-grid">
                             <label>
-                                <span>Área de mejora</span>
+                                <span>Área de mejora <em class="field-optional">(opcional)</em></span>
                                 <input id="formAreaMejora" type="text" placeholder="Instalaciones, desayuno, comunicación...">
                             </label>
                             <label>
-                                <span>Prioridad sugerida</span>
+                                <span>Prioridad sugerida <em class="field-optional">(opcional)</em></span>
                                 <select id="formPrioridadSugerida">
                                     <option value="">Sin indicar</option>
                                     <option value="Baja">Baja</option>
@@ -228,14 +228,14 @@
                                 </select>
                             </label>
                             <label class="full">
-                                <span>Beneficio esperado</span>
+                                <span>Beneficio esperado <em class="field-optional">(opcional)</em></span>
                                 <textarea id="formBeneficio" rows="3" placeholder="Qué mejora aportaría al cliente, al centro o a la operativa."></textarea>
                             </label>
                         </div>
                     </div>
 
                     <div class="form-section attachment-section">
-                        <span class="section-kicker">Adjuntos</span>
+                        <span class="section-kicker">Adjuntos <em class="field-optional">(opcional)</em></span>
                         <label class="file-drop">
                             <input id="formAdjuntos" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                             <i class="fa-solid fa-paperclip"></i>
@@ -248,12 +248,15 @@
                     <div id="formSaveMessage" class="save-message" aria-live="polite"></div>
 
                     <div class="form-actions">
-                        <button type="button" id="btnClearForm" class="btn btn-secondary">
-                            <i class="fa-solid fa-eraser"></i> Limpiar
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar incidencia
-                        </button>
+                        <p class="form-required-note"><span>*</span> Campo obligatorio</p>
+                        <div style="display:flex; gap: 0.75rem;">
+                            <button type="button" id="btnClearForm" class="btn btn-secondary">
+                                <i class="fa-solid fa-eraser"></i> Limpiar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar incidencia
+                            </button>
+                        </div>
                     </div>
                 </form>
 
