@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
     setupPickers();
     updateRecordType('Queja');
-    checkSynologyCors();
     document.getElementById('standaloneIncidentForm').addEventListener('submit', saveIncident);
     document.getElementById('formAdjuntos').addEventListener('change', renderSelectedAttachments);
     document.getElementById('btnClearForm').addEventListener('click', () => {
@@ -33,53 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage('');
     });
 });
-
-async function checkSynologyCors() {
-    if (!SYNOLOGY_URL || SYNOLOGY_URL.includes('XXXXXXX') || SYNOLOGY_URL.includes('miempresa')) {
-        return;
-    }
-    
-    const bannerId = 'synology-cors-warning';
-    const existing = document.getElementById(bannerId);
-    if (existing) existing.remove();
-
-    try {
-        const res = await fetch(`${SYNOLOGY_URL}/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=all`, {
-            method: 'GET',
-            credentials: 'omit'
-        });
-        if (res.ok) {
-            console.log("✔ Conexión CORS con Synology verificada con éxito.");
-            return;
-        }
-    } catch (err) {
-        console.warn("⚠️ Error de conexión o CORS bloqueado en Synology:", err);
-        
-        const form = document.getElementById('standaloneIncidentForm');
-        if (form) {
-            const banner = document.createElement('div');
-            banner.id = bannerId;
-            banner.style.background = '#fffbeb';
-            banner.style.border = '1px solid #fef3c7';
-            banner.style.borderRadius = '0.5rem';
-            banner.style.padding = '1rem';
-            banner.style.marginBottom = '1.25rem';
-            banner.style.color = '#b45309';
-            banner.style.fontSize = '0.9rem';
-            banner.style.lineHeight = '1.5';
-            
-            banner.innerHTML = `
-                <strong>⚠️ Conectividad con Synology NAS no verificada (CORS)</strong><br>
-                El navegador ha bloqueado la conexión directa a tu NAS de Synology. Esto suele ocurrir si no has activado la opción CORS en tu NAS. Para solucionarlo:<br>
-                1. Entra a tu Synology NAS (**DSM**).<br>
-                2. Ve a **Panel de Control** > **Seguridad** > **Servicio HTTP**.<br>
-                3. Activa la casilla **Habilitar CORS (Cross-Origin Resource Sharing)** y guarda los cambios.<br>
-                <small style="color: #d97706; display: block; margin-top: 5px;">* Nota: Mientras no actives esto, los archivos adjuntos se guardarán como imágenes optimizadas (Base64) en Firestore para que no se pierdan, pero no se registrarán en la carpeta de tu Synology.</small>
-            `;
-            form.insertBefore(banner, form.firstChild);
-        }
-    }
-}
 
 const TYPE_CONFIG = {
     Queja: {
@@ -191,7 +143,8 @@ async function saveIncident(event) {
         const state = loadState();
         const now = new Date();
         const localId = `local_${Date.now()}`;
-        const attachments = await saveAttachments(localId);
+        const hotelName = valueOf('formHotel') || 'Secotel Guadiana';
+        const attachments = await saveAttachments(localId, hotelName);
         
         const item = {
             id: localId,
@@ -332,96 +285,50 @@ function fileToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
     });
 }
 
-// ── Synology FileStation API ──────────────────────────────────────────
+// ── Synology FileStation API (Vía Cloud Function Proxy) ────────────────
+const CLOUD_FUNCTION_UPLOAD = 'https://us-central1-objetos-perdidos-hoteles.cloudfunctions.net/uploadSynology';
+const CLOUD_FUNCTION_VIEW = 'https://us-central1-objetos-perdidos-hoteles.cloudfunctions.net/fetchSynologyImage';
 
-async function synologyLogin() {
-    const url = `${SYNOLOGY_URL}/webapi/auth.cgi?` + new URLSearchParams({
-        api: 'SYNO.API.Auth',
-        version: '3',
-        method: 'login',
-        account: SYNOLOGY_USER,
-        passwd: SYNOLOGY_PASS,
-        session: 'FileStation',
-        format: 'sid'
-    });
-    
-    const res = await fetch(url, { credentials: 'omit' });
-    const data = await res.json();
-    if (!data.success) {
-        throw new Error(`Synology login error: ${JSON.stringify(data.error)}`);
-    }
-    return data.data.sid;
-}
-
-async function synologyLogout(sid) {
-    try {
-        const url = `${SYNOLOGY_URL}/webapi/auth.cgi?` + new URLSearchParams({
-            api: 'SYNO.API.Auth',
-            version: '1',
-            method: 'logout',
-            session: 'FileStation',
-            _sid: sid
-        });
-        await fetch(url, { credentials: 'omit' });
-    } catch (e) {
-        console.warn("Synology logout error:", e);
-    }
-}
-
-async function synologyUploadFile(sid, file, incidentId) {
-    const prefixedName = `${incidentId}__${file.name}`;
-    const formData = new FormData();
-    formData.append('api', 'SYNO.FileStation.Upload');
-    formData.append('version', '2');
-    formData.append('method', 'upload');
-    formData.append('path', SYNOLOGY_FOLDER);
-    formData.append('create_parents', 'true');
-    formData.append('overwrite', 'false');
-    formData.append('file', file, prefixedName);
-    formData.append('_sid', sid);
-
-    const uploadUrl = `${SYNOLOGY_URL}/webapi/entry.cgi?_sid=${encodeURIComponent(sid)}`;
-    const res = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        credentials: 'omit'
-    });
-    const data = await res.json();
-    if (!data.success) {
-        throw new Error(`Synology upload error: ${JSON.stringify(data.error)}`);
-    }
-    return `${SYNOLOGY_URL}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodeURIComponent(SYNOLOGY_FOLDER + '/' + prefixedName)}&mode=open`;
-}
-
-async function uploadFilesToSynology(files, incidentId) {
-    if (!SYNOLOGY_URL || SYNOLOGY_URL === 'https://miempresa.synology.me') {
-        return null; // Omitir si no está configurado o tiene la URL por defecto
-    }
-
-    let sid = null;
+async function uploadFilesToSynologyCloudFunction(files, incidentId, hotelName) {
     const results = [];
-    try {
-        const loginPromise = synologyLogin();
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout conectando a Synology")), SYNOLOGY_TIMEOUT)
-        );
-        sid = await Promise.race([loginPromise, timeoutPromise]);
+    for (const file of files) {
+        try {
+            // 1. Convertir archivo a Base64
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
 
-        for (const file of files) {
-            try {
-                const downloadURL = await synologyUploadFile(sid, file, incidentId);
-                results.push({ name: file.name, url: downloadURL, path: `${SYNOLOGY_FOLDER}/${incidentId}__${file.name}`, ok: true });
-            } catch (fileErr) {
-                console.warn(`Error al subir archivo ${file.name} a Synology:`, fileErr);
-                results.push({ name: file.name, url: null, path: null, ok: false });
+            // 2. Subir a Synology usando el proxy de la Cloud Function
+            const prefixedName = `${incidentId}__${file.name}`;
+            const response = await fetch(CLOUD_FUNCTION_UPLOAD, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fileBase64: base64Data,
+                    hotel: hotelName,
+                    itemId: incidentId,
+                    fileName: prefixedName,
+                    customPath: SYNOLOGY_FOLDER
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Construimos la URL final apuntando a fetchSynologyImage (evita CORS al visualizar)
+                const viewUrl = `${CLOUD_FUNCTION_VIEW}?path=${encodeURIComponent(data.path)}`;
+                results.push({ name: file.name, url: viewUrl, path: data.path, ok: true });
+                console.log("✔ Subida a Synology exitosa (vía Cloud Function):", data.path);
+            } else {
+                throw new Error(data.error || "Fallo en respuesta");
             }
-        }
-    } catch (err) {
-        console.warn("No se pudo conectar a Synology (se usará Base64 local):", err.message || err);
-        return null;
-    } finally {
-        if (sid) {
-            await synologyLogout(sid);
+        } catch (e) {
+            console.warn(`✘ Error subiendo ${file.name} a través de la Cloud Function:`, e);
+            results.push({ name: file.name, url: null, path: null, ok: false });
         }
     }
     return results;
@@ -429,12 +336,12 @@ async function uploadFilesToSynology(files, incidentId) {
 
 // ── Guardado de adjuntos ──────────────────────────────────────────────
 
-async function saveAttachments(incidentId) {
+async function saveAttachments(incidentId, hotelName) {
     const files = Array.from(document.getElementById('formAdjuntos').files || []);
     if (!files.length) return [];
 
-    // Intentamos subir a Synology primero
-    const synologyResults = await uploadFilesToSynology(files, incidentId);
+    // Subir archivos a Synology usando la Cloud Function
+    const synologyResults = await uploadFilesToSynologyCloudFunction(files, incidentId, hotelName);
     const records = [];
     
     for (let index = 0; index < files.length; index++) {
@@ -445,7 +352,7 @@ async function saveAttachments(incidentId) {
         let downloadURL = synResult && synResult.ok ? synResult.url : null;
         let synologyPath = synResult && synResult.ok ? synResult.path : null;
 
-        // Fallback si falló o no se subió a Synology
+        // Fallback local en Base64 si la Cloud Function falló
         if (!downloadURL) {
             try {
                 downloadURL = await fileToDataUrl(file);
