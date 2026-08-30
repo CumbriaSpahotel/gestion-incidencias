@@ -1620,7 +1620,7 @@ function renderKanban() {
     return 'Pendiente';
   };
 
-  ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado', 'Irresoluble'].forEach(status => {
+  ['Pendiente', 'En proceso', 'Resuelto', 'Irresoluble', 'Cerrado'].forEach(status => {
     const col = board.querySelector('.kanban-column[data-status="' + status + '"] .kanban-cards');
     const countBadge = board.querySelector('.kanban-column[data-status="' + status + '"] .count');
     if (!col) return;
