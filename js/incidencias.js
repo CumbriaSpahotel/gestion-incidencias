@@ -806,10 +806,26 @@ function renderDashboard() {
 
 function renderKPIs() {
     const items = STATE.incidencias;
-    document.getElementById('kpiTotal').innerText = items.length;
-    document.getElementById('kpiAbiertas').innerText = items.filter(i => ['Pendiente', 'En proceso'].includes(i.estado)).length;
-    document.getElementById('kpiCerradas').innerText = items.filter(i => ['Resuelto', 'Cerrado'].includes(i.estado)).length;
-    document.getElementById('kpiTiempo').innerText = calculateAverageCloseDays(items);
+    const total = items.length;
+    const pendientes = items.filter(i => (i.estado || 'Pendiente') === 'Pendiente').length;
+    const enProceso = items.filter(i => (i.estado || '').toLowerCase().includes('proceso')).length;
+    const resueltas = items.filter(i => ['Resuelto', 'Cerrado'].includes(i.estado)).length;
+    const porcentaje = total > 0 ? Math.round((resueltas / total) * 100) : 0;
+
+    const elAbiertas = document.getElementById('kpiAbiertas');
+    if (elAbiertas) elAbiertas.innerText = pendientes;
+
+    const elProceso = document.getElementById('kpiProceso');
+    if (elProceso) elProceso.innerText = enProceso;
+
+    const elResuelto = document.getElementById('kpiResuelto');
+    if (elResuelto) elResuelto.innerText = resueltas;
+
+    const elTasa = document.getElementById('kpiTasa');
+    if (elTasa) elTasa.innerText = `${porcentaje}%`;
+
+    const elProgressBar = document.getElementById('kpiProgressBar');
+    if (elProgressBar) elProgressBar.style.width = `${porcentaje}%`;
 }
 
 function renderOperations() {

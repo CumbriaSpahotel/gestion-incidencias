@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/incidencias.css?v=6">
+    <link rel="stylesheet" href="css/incidencias.css?v=7">
 </head>
 
 <body>
@@ -105,24 +105,27 @@
             <!-- KPI Grid -->
             <section class="kpi-grid">
                 <div class="card kpi-card">
-                    <span class="kpi-title">Total Registrados</span>
-                    <span class="kpi-value" id="kpiTotal">0</span>
-                    <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Histórico</span>
+                    <span class="kpi-title" style="color: var(--danger);">Abierto / Pendiente</span>
+                    <span class="kpi-value" id="kpiAbiertas" style="color: var(--danger);">0</span>
+                    <span class="kpi-trend trend-down"><i class="fa-solid fa-inbox"></i> Por iniciar</span>
                 </div>
                 <div class="card kpi-card">
-                    <span class="kpi-title">Abiertas</span>
-                    <span class="kpi-value" id="kpiAbiertas">0</span>
-                    <span class="kpi-trend trend-down"><i class="fa-solid fa-circle-exclamation"></i> Requieren atención</span>
+                    <span class="kpi-title" style="color: var(--warning);">En proceso</span>
+                    <span class="kpi-value" id="kpiProceso" style="color: var(--warning);">0</span>
+                    <span class="kpi-trend" style="color: var(--warning);"><i class="fa-solid fa-arrows-rotate"></i> En gestión</span>
                 </div>
                 <div class="card kpi-card">
-                    <span class="kpi-title">Cerradas</span>
-                    <span class="kpi-value" id="kpiCerradas">0</span>
-                    <span class="kpi-trend trend-up"><i class="fa-solid fa-check"></i> Resueltas</span>
+                    <span class="kpi-title" style="color: var(--success);">Resuelto</span>
+                    <span class="kpi-value" id="kpiResuelto" style="color: var(--success);">0</span>
+                    <span class="kpi-trend trend-up"><i class="fa-solid fa-check-double"></i> Finalizadas</span>
                 </div>
                 <div class="card kpi-card">
-                    <span class="kpi-title">Tiempo Medio</span>
-                    <span class="kpi-value" id="kpiTiempo">-</span>
-                    <span class="kpi-trend"><i class="fa-regular fa-clock"></i> Estimado</span>
+                    <span class="kpi-title" style="color: var(--primary);">% Resuelto</span>
+                    <span class="kpi-value" id="kpiTasa" style="color: var(--primary);">0%</span>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 999px; overflow: hidden; margin-top: 4px;">
+                        <div id="kpiProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.4s ease;"></div>
+                    </div>
+                    <span class="kpi-trend" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;"><i class="fa-solid fa-chart-line"></i> Hasta final del proceso</span>
                 </div>
             </section>
 
@@ -546,6 +549,6 @@
 
     <!-- Logic -->
     <script src="js/firebase-init.js"></script>
-    <script src="js/incidencias.js?v=6"></script>
+    <script src="js/incidencias.js?v=7"></script>
 </body>
 </html>
