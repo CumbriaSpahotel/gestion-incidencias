@@ -650,8 +650,10 @@ tr:hover td {
 }
 
 .modal-panel {
-    width: min(1000px, 95vw);
-    max-height: min(92vh, 900px);
+    width: 98vw;
+    max-width: 1600px;
+    height: 98vh;
+    max-height: 98vh;
     overflow: hidden;
     background: var(--surface);
     border-radius: 0.75rem;
