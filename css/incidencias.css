@@ -1202,3 +1202,66 @@ body.dark-mode { --primary: #238962; --primary-hover: #31a67a; --background: #12
 .kanban-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
 .kanban-card.dragging { opacity: 0.5; }
 
+/* Admin & Danger Button Styles */
+.btn-danger {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #991b1b;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    min-height: 2rem;
+    font-size: 0.82rem;
+    border-radius: 0.375rem;
+}
+
+.admin-auth-card {
+    border-top: 4px solid var(--primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-delete-row {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-delete-row:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+body.dark-mode .btn-delete-row {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #f87171;
+}
+
+body.dark-mode .btn-delete-row:hover {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+body.dark-mode #adminAuthCard,
+body.dark-mode #deleteIncidentPreview {
+    background: var(--surface);
+    border-color: var(--border);
+}
+

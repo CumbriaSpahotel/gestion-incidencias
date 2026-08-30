@@ -10,7 +10,10 @@ const CONFIG = {
 let STATE = {
     incidencias: [],
     lastUpdate: null,
-    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente' }
+    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente' },
+    adminFilters: { search: '', hotel: 'all', tipo: 'all', estado: 'all' },
+    isAdminUnlocked: false,
+    pendingDeleteIncidentId: null
 };
 
 window.refreshIntervalId = null;
@@ -83,6 +86,22 @@ async function getAttachment(id) {
     } catch (error) {
         console.warn('Attachment read error', error);
         return null;
+    }
+}
+
+async function deleteAttachment(id) {
+    if (!id) return;
+    try {
+        const db = await openAttachmentDB();
+        await new Promise((resolve) => {
+            const tx = db.transaction(ATTACHMENT_STORE, 'readwrite');
+            tx.objectStore(ATTACHMENT_STORE).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        });
+        db.close();
+    } catch (error) {
+        console.warn('Attachment delete error', error);
     }
 }
 
@@ -170,9 +189,10 @@ function initLocalState() {
                 firebaseItems.push({ ...data, id: doc.id });
             });
             
-            // Si Firebase está vacío pero tenemos datos locales, los subimos (Migración)
-            if (snapshot.docs.length === 0 && STATE.incidencias.length > 0) {
+            // Si Firebase está vacío pero tenemos datos locales (Migración inicial)
+            if (snapshot.docs.length === 0 && STATE.incidencias.length > 0 && !localStorage.getItem('firestore_migrated')) {
                 console.log("Migrando incidencias locales a Firebase...");
+                localStorage.setItem('firestore_migrated', 'true');
                 STATE.incidencias.forEach(item => {
                     const docId = item.id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     item.id = docId;
@@ -181,26 +201,18 @@ function initLocalState() {
                 return; // onSnapshot volverá a saltar cuando se guarden
             }
 
-            // Merge state with Firebase data so we don't lose local Excel items
-            if (firebaseItems.length > 0 || snapshot.docs.length === 0) {
-                const fbMap = new Map(firebaseItems.map(i => [i.id, i]));
-                
-                // Update existing items with Firebase data
-                STATE.incidencias = STATE.incidencias.map(item => fbMap.has(item.id) ? fbMap.get(item.id) : item);
-                
-                // Add any new items from Firebase
-                const localIds = new Set(STATE.incidencias.map(i => i.id));
-                firebaseItems.forEach(fi => {
-                    if (!localIds.has(fi.id)) STATE.incidencias.push(fi);
-                });
-
-                STATE.lastUpdate = new Date().toISOString();
-                updateLastUpdateUI();
-                renderDashboard();
-                
-                // Keep local storage in sync as a backup
-                localStorage.setItem(CONFIG.dbName, JSON.stringify({ items: STATE.incidencias, lastUpdate: STATE.lastUpdate }));
+            // Firebase como fuente de verdad única para sincronizar y propagar eliminaciones
+            STATE.incidencias = firebaseItems;
+            STATE.lastUpdate = new Date().toISOString();
+            updateLastUpdateUI();
+            renderDashboard();
+            if (STATE.isAdminUnlocked) {
+                populateAdminSelects();
+                renderAdminTable();
             }
+            
+            // Keep local storage in sync as a backup
+            localStorage.setItem(CONFIG.dbName, JSON.stringify({ items: STATE.incidencias, lastUpdate: STATE.lastUpdate }));
         }, (error) => {
             console.error("Error fetching from Firebase:", error);
         });
@@ -225,7 +237,52 @@ function setupEventListeners() {
         STATE.filters.estado = e.target.value; renderTable();
     });
 
-    // Smart Refresh (Now just placebo as Firebase handles it realtime, but users like buttons)
+    // Admin Filters
+    const searchAdmin = document.getElementById('searchAdminInput');
+    if (searchAdmin) {
+        searchAdmin.addEventListener('input', (e) => {
+            STATE.adminFilters.search = e.target.value.toLowerCase();
+            renderAdminTable();
+        });
+    }
+    const filterAdminH = document.getElementById('filterAdminHotel');
+    if (filterAdminH) {
+        filterAdminH.addEventListener('change', (e) => {
+            STATE.adminFilters.hotel = e.target.value;
+            renderAdminTable();
+        });
+    }
+    const filterAdminT = document.getElementById('filterAdminTipo');
+    if (filterAdminT) {
+        filterAdminT.addEventListener('change', (e) => {
+            STATE.adminFilters.tipo = e.target.value;
+            renderAdminTable();
+        });
+    }
+    const filterAdminE = document.getElementById('filterAdminEstado');
+    if (filterAdminE) {
+        filterAdminE.addEventListener('change', (e) => {
+            STATE.adminFilters.estado = e.target.value;
+            renderAdminTable();
+        });
+    }
+
+    // Delete Modal Listeners
+    const btnCloseDel = document.getElementById('btnCloseDeleteModal');
+    if (btnCloseDel) btnCloseDel.addEventListener('click', closeDeleteModal);
+    const btnCancelDel = document.getElementById('btnCancelDelete');
+    if (btnCancelDel) btnCancelDel.addEventListener('click', closeDeleteModal);
+    const btnConfirmDel = document.getElementById('btnConfirmDelete');
+    if (btnConfirmDel) btnConfirmDel.addEventListener('click', ejecutarEliminacionIncidencia);
+
+    const delModal = document.getElementById('deleteConfirmModal');
+    if (delModal) {
+        delModal.addEventListener('click', (event) => {
+            if (event.target.id === 'deleteConfirmModal') closeDeleteModal();
+        });
+    }
+
+    // Smart Refresh
     document.getElementById('btnRefresh').addEventListener('click', () => {
         showLoading(true);
         setTimeout(() => {
@@ -237,12 +294,9 @@ function setupEventListeners() {
     document.getElementById('btnReport').addEventListener('click', generateManagementReport);
     document.getElementById('btnExport').addEventListener('click', exportToExcel);
 
-    // Legacy excel listeners removed
-
     // Dark Mode Toggle
     const btnTheme = document.getElementById('btnToggleTheme');
     if (btnTheme) {
-        // Load preference
         if (localStorage.getItem('dark-mode') === 'true') {
             document.body.classList.add('dark-mode');
             btnTheme.querySelector('i').classList.replace('fa-moon', 'fa-sun');
@@ -279,8 +333,15 @@ function setupEventListeners() {
         if (event.target.id === 'incidentFormModal') closeIncidentFormModal();
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeIncidentModal();
+        if (event.key === 'Escape') {
+            closeIncidentModal();
+            closeDeleteModal();
+            closeIncidentFormModal();
+        }
     });
+
+    // Check existing admin session
+    checkAdminSession();
 }
 
 // Smart Local File Logic
@@ -1000,6 +1061,17 @@ function switchView(view) {
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
         item.classList.toggle('active', item.dataset.view === view);
     });
+    if (view === 'admin') {
+        if (STATE.isAdminUnlocked) {
+            populateAdminSelects();
+            renderAdminTable();
+        } else {
+            setTimeout(() => {
+                const pinInput = document.getElementById('adminPinInput');
+                if (pinInput) pinInput.focus();
+            }, 100);
+        }
+    }
 }
 
 async function renderIncidentAttachments(item) {
@@ -1500,5 +1572,250 @@ function setupKanbanEvents() {
   });
 }
 document.addEventListener('DOMContentLoaded', setupKanbanEvents);
+
+// ==========================================
+// MÓDULO DE ADMINISTRACIÓN Y ELIMINACIÓN
+// ==========================================
+
+function getAdminPin() {
+    return localStorage.getItem('admin_pin') || '1234';
+}
+
+function checkAdminSession() {
+    if (sessionStorage.getItem('admin_unlocked') === 'true') {
+        STATE.isAdminUnlocked = true;
+        const authCard = document.getElementById('adminAuthCard');
+        const dashContent = document.getElementById('adminDashboardContent');
+        if (authCard) authCard.style.display = 'none';
+        if (dashContent) dashContent.style.display = 'block';
+        populateAdminSelects();
+        renderAdminTable();
+    }
+}
+
+function handleAdminLogin(event) {
+    if (event) event.preventDefault();
+    const pinInput = document.getElementById('adminPinInput');
+    const pinError = document.getElementById('adminPinError');
+    const enteredPin = (pinInput?.value || '').trim();
+
+    if (enteredPin === getAdminPin()) {
+        STATE.isAdminUnlocked = true;
+        sessionStorage.setItem('admin_unlocked', 'true');
+        if (pinError) pinError.style.display = 'none';
+        if (pinInput) pinInput.value = '';
+        
+        const authCard = document.getElementById('adminAuthCard');
+        const dashContent = document.getElementById('adminDashboardContent');
+        if (authCard) authCard.style.display = 'none';
+        if (dashContent) dashContent.style.display = 'block';
+
+        populateAdminSelects();
+        renderAdminTable();
+        showToast('Acceso a Administración concedido', 'success');
+    } else {
+        if (pinError) pinError.style.display = 'block';
+        if (pinInput) {
+            pinInput.focus();
+            pinInput.select();
+        }
+    }
+}
+
+function lockAdminSession() {
+    STATE.isAdminUnlocked = false;
+    sessionStorage.removeItem('admin_unlocked');
+    const authCard = document.getElementById('adminAuthCard');
+    const dashContent = document.getElementById('adminDashboardContent');
+    const pinError = document.getElementById('adminPinError');
+    if (authCard) authCard.style.display = 'block';
+    if (dashContent) dashContent.style.display = 'none';
+    if (pinError) pinError.style.display = 'none';
+    showToast('Sesión de administración bloqueada', 'info');
+}
+
+function promptChangeAdminPin() {
+    const current = prompt('Introduzca el PIN actual de administración:');
+    if (current === null) return;
+    if (current.trim() !== getAdminPin()) {
+        alert('El PIN actual introducido no es correcto.');
+        return;
+    }
+    const next = prompt('Introduzca el nuevo PIN (mínimo 4 caracteres):');
+    if (next === null) return;
+    const clean = next.trim();
+    if (clean.length < 4) {
+        alert('El PIN debe tener un mínimo de 4 caracteres.');
+        return;
+    }
+    localStorage.setItem('admin_pin', clean);
+    alert('PIN de administración actualizado correctamente.');
+    showToast('PIN actualizado con éxito', 'success');
+}
+
+function populateAdminSelects() {
+    const sel = document.getElementById('filterAdminHotel');
+    if (!sel) return;
+    const cur = sel.value;
+    const h = [...new Set(STATE.incidencias.map(i => i.hotel).filter(Boolean))];
+    sel.innerHTML = '<option value="all">Todos los Hoteles</option>' + h.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');
+    sel.value = cur;
+}
+
+function renderAdminTable() {
+    if (!STATE.isAdminUnlocked) return;
+    const tbody = document.getElementById('adminTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    const { search, hotel, tipo, estado } = STATE.adminFilters;
+    const filtered = STATE.incidencias.filter(item => {
+        const term = search.toLowerCase();
+        const matchesSearch = !term ||
+            (item.descripcion || '').toLowerCase().includes(term) ||
+            (item.usuario_registro || '').toLowerCase().includes(term) ||
+            (item.id_original || '').toString().toLowerCase().includes(term) ||
+            (item.cliente || '').toLowerCase().includes(term) ||
+            (item.departamento || '').toLowerCase().includes(term);
+
+        const matchesHotel = hotel === 'all' || item.hotel === hotel;
+        const matchesTipo = tipo === 'all' || item.tipo === tipo;
+        const matchesEstado = estado === 'all' || item.estado === estado;
+        return matchesSearch && matchesHotel && matchesTipo && matchesEstado;
+    });
+
+    filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    const adminTotalEl = document.getElementById('adminTotalCount');
+    if (adminTotalEl) adminTotalEl.innerText = STATE.incidencias.length;
+
+    if (!filtered.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-table">No se encontraron incidencias en administración con los filtros aplicados.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <strong>#${escapeHtml(item.id_original || 'S/N')}</strong><br>
+                <small style="color:var(--text-muted); font-size:0.75rem;">${formatDate(item.fecha_creacion)}</small>
+            </td>
+            <td><span class="font-medium">${escapeHtml(item.hotel || '-')}</span></td>
+            <td>${escapeHtml(item.tipo || '-')}</td>
+            <td>${escapeHtml(item.departamento || '-')}</td>
+            <td style="max-width: 250px;">
+                <div class="truncate" title="${escapeHtml(item.descripcion || '')}">
+                    ${escapeHtml(item.descripcion || '')}
+                </div>
+            </td>
+            <td><span class="badge ${getBadgeClass(item.estado)}">${escapeHtml(item.estado || 'Pendiente')}</span></td>
+            <td><span style="color: var(--text-muted); font-size:0.85rem;">${escapeHtml(item.responsable || 'Sin asignar')}</span></td>
+            <td style="text-align: center;">
+                <button class="btn-delete-row" type="button" data-id="${escapeHtml(item.id)}" title="Eliminar definitivamente">
+                    <i class="fa-solid fa-trash-can"></i> Eliminar
+                </button>
+            </td>
+        `;
+
+        tr.addEventListener('click', (event) => {
+            const deleteBtn = event.target.closest('.btn-delete-row');
+            if (deleteBtn) {
+                event.stopPropagation();
+                confirmarEliminarIncidencia(item.id);
+            } else {
+                openIncidentModal(item.id);
+            }
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+function confirmarEliminarIncidencia(id) {
+    const item = STATE.incidencias.find(x => x.id === id);
+    if (!item) return;
+
+    STATE.pendingDeleteIncidentId = id;
+    const previewEl = document.getElementById('deleteIncidentPreview');
+    if (previewEl) {
+        previewEl.innerHTML = `
+            <div style="font-size:0.9rem; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+                <strong>#${escapeHtml(item.id_original || 'S/N')} · ${escapeHtml(item.tipo || 'Incidencia')}</strong>
+                <span class="badge ${getBadgeClass(item.estado)}">${escapeHtml(item.estado || 'Pendiente')}</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                <span>${escapeHtml(item.hotel || '-')}</span> · <span>${escapeHtml(item.departamento || '-')}</span> · <span>${formatDateTime(item.fecha_creacion)}</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-main); max-height:80px; overflow-y:auto; background:white; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border);">
+                ${escapeHtml(item.descripcion || 'Sin descripción')}
+            </div>
+        `;
+    }
+
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    STATE.pendingDeleteIncidentId = null;
+}
+
+async function ejecutarEliminacionIncidencia() {
+    const id = STATE.pendingDeleteIncidentId;
+    if (!id) return;
+
+    const item = STATE.incidencias.find(x => x.id === id);
+    const idOriginal = item ? (item.id_original || item.id) : id;
+
+    // 1. Eliminar archivos adjuntos asociados en IndexedDB
+    if (item && Array.isArray(item.attachments)) {
+        for (const att of item.attachments) {
+            if (att.id) await deleteAttachment(att.id);
+        }
+    }
+
+    // 2. Eliminar documento de Firebase Firestore
+    if (typeof db !== 'undefined') {
+        try {
+            await db.collection('incidencias').doc(id).delete();
+        } catch (err) {
+            console.error("Error al eliminar documento en Firestore:", err);
+        }
+    }
+
+    // 3. Eliminar de STATE en memoria y LocalStorage
+    STATE.incidencias = STATE.incidencias.filter(x => x.id !== id);
+    STATE.lastUpdate = new Date().toISOString();
+    saveState();
+
+    // 4. Si el modal de detalle estaba abierto con esta incidencia, cerrarlo
+    if (currentModalIncidentId === id) {
+        closeIncidentModal();
+    }
+
+    // 5. Cerrar modal de confirmación
+    closeDeleteModal();
+
+    // 6. Refrescar todas las vistas (Dashboard, KPIs, Kanban, Tabla, Análisis y Admin)
+    renderDashboard();
+    renderAdminTable();
+
+    // 7. Notificación de confirmación
+    alert(`Incidencia #${idOriginal} eliminada definitivamente de todos los sitios.`);
+}
+
 
 

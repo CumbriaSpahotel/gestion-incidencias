@@ -58,6 +58,10 @@
                     <i class="fa-solid fa-chart-line"></i>
                     <span>Análisis</span>
                 </li>
+                <li class="nav-item" data-view="admin">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Administración</span>
+                </li>
                 <li class="nav-item" id="btnToggleTheme" style="margin-top: auto;">
                     <i class="fa-solid fa-moon"></i>
                     <span>Modo oscuro</span>
@@ -267,7 +271,147 @@
                     </article>
                 </div>
             </section>
+
+            <!-- Admin Section -->
+            <section id="adminSection" class="view-section">
+                <!-- If locked: Admin Auth Screen -->
+                <div id="adminAuthCard" class="card admin-auth-card" style="max-width: 480px; margin: 3rem auto; text-align: center;">
+                    <div style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <h2>Acceso a Administración</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                        Área protegida para dirección y administración. Introduzca el PIN de seguridad para gestionar y eliminar incidencias de forma definitiva.
+                    </p>
+                    <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div>
+                            <input type="password" id="adminPinInput" placeholder="Introduzca PIN (defecto: 1234)" maxlength="10" required
+                                style="padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border); width: 100%; text-align: center; font-size: 1.25rem; letter-spacing: 0.2em;">
+                        </div>
+                        <div id="adminPinError" style="color: var(--danger); font-size: 0.85rem; display: none;">PIN incorrecto. Inténtelo de nuevo.</div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fa-solid fa-key"></i> Desbloquear Administración
+                        </button>
+                    </form>
+                </div>
+
+                <!-- If unlocked: Admin Panel Content -->
+                <div id="adminDashboardContent" style="display: none;">
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow" style="color: var(--danger);"><i class="fa-solid fa-shield-halved"></i> Panel Exclusivo</span>
+                            <h2>Administración y Control de Registros</h2>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button id="btnAdminChangePin" class="btn btn-secondary btn-sm" onclick="promptChangeAdminPin()" title="Cambiar clave PIN">
+                                <i class="fa-solid fa-key"></i> Cambiar PIN
+                            </button>
+                            <button id="btnAdminLock" class="btn btn-secondary btn-sm" onclick="lockAdminSession()" title="Bloquear sesión">
+                                <i class="fa-solid fa-lock"></i> Bloquear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="workspace-summary" style="border-left-color: var(--danger); background: #fffcfc;">
+                        <div>
+                            <span style="color: var(--danger);">Control de eliminación global</span>
+                            <strong>Únicamente desde esta sección se pueden eliminar incidencias definitivamente de todos los sitios (nube Firebase, almacenamiento local y vistas).</strong>
+                        </div>
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <div class="card" style="padding: 0.5rem 1rem; text-align: center; border-radius: 0.5rem;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Registros</span>
+                                <strong id="adminTotalCount" style="font-size: 1.25rem; display: block; color: var(--primary);">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-controls">
+                        <div class="filters">
+                            <select id="filterAdminHotel" class="select-filter">
+                                <option value="all">Todos los Hoteles</option>
+                            </select>
+                            <select id="filterAdminTipo" class="select-filter">
+                                <option value="all">Todos los Tipos</option>
+                                <option value="Queja">Queja</option>
+                                <option value="Reclamación">Reclamación</option>
+                                <option value="Incidencia">Incidencia</option>
+                                <option value="Sugerencia">Sugerencia</option>
+                            </select>
+                            <select id="filterAdminEstado" class="select-filter">
+                                <option value="all">Todos los Estados</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En proceso">En proceso</option>
+                                <option value="Resuelto">Resuelto</option>
+                                <option value="Cerrado">Cerrado</option>
+                                <option value="Irresoluble">Irresoluble</option>
+                            </select>
+                        </div>
+                        <input type="text" id="searchAdminInput" placeholder="Buscar por ID, descripción, usuario..." class="search-input">
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID / Fecha</th>
+                                    <th>Hotel</th>
+                                    <th>Tipo</th>
+                                    <th>Depto</th>
+                                    <th>Descripción</th>
+                                    <th>Estado</th>
+                                    <th>Responsable</th>
+                                    <th style="text-align: center; width: 130px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody">
+                                <!-- JS Will Render Admin Rows Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
+    </div>
+
+    <!-- Delete Confirmation Modal (Solo accesible desde Administración) -->
+    <div id="deleteConfirmModal" class="modal-backdrop" aria-hidden="true">
+        <section class="modal-panel" style="max-width: 550px; height: auto; max-height: 90vh;" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+            <header class="modal-header" style="border-bottom: 2px solid var(--danger);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger); font-size: 1.5rem;"></i>
+                    <div>
+                        <span class="modal-meta" style="color: var(--danger);">Acción Destructiva Irreversible</span>
+                        <h2 id="deleteModalTitle" style="color: var(--danger); font-size: 1.2rem;">Confirmar Eliminación</h2>
+                    </div>
+                </div>
+                <button id="btnCloseDeleteModal" class="icon-button" type="button" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <p style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-main);">
+                    ¿Está seguro de que desea eliminar definitivamente la siguiente incidencia de <strong>todos los sitios</strong>?
+                </p>
+
+                <div id="deleteIncidentPreview" style="background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--danger); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.25rem;">
+                    <!-- JS injects preview here -->
+                </div>
+
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 0.85rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: #991b1b;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <strong>Atención:</strong> Esta acción borrará el registro de la base de datos en la nube (Firebase Firestore), del almacenamiento local y de todos los dispositivos. <strong>No se podrá recuperar.</strong>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" id="btnCancelDelete" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                    <button type="button" id="btnConfirmDelete" class="btn btn-danger">
+                        <i class="fa-solid fa-trash-can"></i> Eliminar definitivamente
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div id="incidentModal" class="modal-backdrop" aria-hidden="true">
