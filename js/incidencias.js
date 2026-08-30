@@ -650,6 +650,13 @@ function mergeData(freshItems) {
     STATE.incidencias = [...nextItems, ...localItems];
     STATE.lastUpdate = new Date();
     saveState();
+
+    // Sync all loaded/merged items to Firebase so they are visible across all browsers
+    if (typeof db !== 'undefined') {
+        STATE.incidencias.forEach(item => {
+            db.collection('incidencias').doc(item.id).set(item, { merge: true }).catch(console.error);
+        });
+    }
 }
 
 function saveState() {
