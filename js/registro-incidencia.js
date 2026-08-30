@@ -118,55 +118,81 @@ function saveState(state) {
 async function saveIncident(event) {
     event.preventDefault();
 
-    const state = loadState();
-    const now = new Date();
-    const localId = `local_${Date.now()}`;
-    const attachments = await saveAttachments(localId);
-    const item = {
-        id: localId,
-        source: 'local',
-        id_original: `WEB-${String(getNextLocalNumber(state.items)).padStart(4, '0')}`,
-        fecha_creacion: now,
-        usuario_registro: valueOf('formUsuario') || 'Registro web',
-        hotel: valueOf('formHotel'),
-        tipo: valueOf('formTipo'),
-        departamento: valueOf('formDepartamento'),
-        descripcion: valueOf('formDescripcion'),
-        responsable: valueOfOptional('formResponsableInicial'),
-        estado: 'Pendiente',
-        accion: buildActionSummary(),
-        cliente: valueOfOptional('formCliente') || valueOfOptional('formClienteIncidencia'),
-        correo: '',
-        solicita_respuesta: valueOfOptional('formSolicitaRespuesta'),
-        telefono: valueOfOptional('formTelefono'),
-        correo_respuesta: valueOfOptional('formCorreoRespuesta'),
-        fecha_cierre: '',
-        notas_internas: buildInternalNotes(),
-        attachments: attachments.map(({ id, name, type, size }) => ({ id, name, type, size }))
-    };
-
-    state.items.unshift(item);
-    state.lastUpdate = now;
-    saveState(state);
-    
-    if (typeof db !== 'undefined') {
-        db.collection('incidencias').doc(item.id).set(item).catch(console.error);
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
     }
-    updateCurrentTotal();
-    showMessage(`Incidencia ${item.id_original} guardada correctamente.`);
-    document.getElementById('standaloneIncidentForm').reset();
-    document.getElementById('formHotel').value = 'Secotel Guadiana';
-    document.getElementById('formTipo').value = 'Queja';
-    setActiveButton('.center-card', 'center', 'Secotel Guadiana');
-    setActiveButton('.type-card', 'type', 'Queja');
-    updateRecordType('Queja');
-    renderSelectedAttachments();
 
-    const notificationSent = await sendAutomaticNotification(item);
-    if (NOTIFICATION_WEBHOOK_URL) {
-        showMessage(notificationSent
-            ? `Incidencia ${item.id_original} guardada y aviso enviado.`
-            : `Incidencia ${item.id_original} guardada. No se pudo enviar el aviso automático.`);
+    try {
+        const state = loadState();
+        const now = new Date();
+        const localId = `local_${Date.now()}`;
+        const attachments = await saveAttachments(localId);
+        
+        const item = {
+            id: localId,
+            source: 'local',
+            id_original: `WEB-${String(getNextLocalNumber(state.items)).padStart(4, '0')}`,
+            fecha_creacion: now.toISOString(),
+            usuario_registro: valueOf('formUsuario') || 'Registro web',
+            hotel: valueOf('formHotel'),
+            tipo: valueOf('formTipo'),
+            departamento: valueOf('formDepartamento'),
+            descripcion: valueOf('formDescripcion'),
+            responsable: valueOfOptional('formResponsableInicial'),
+            estado: 'Pendiente',
+            accion: buildActionSummary(),
+            cliente: valueOfOptional('formCliente') || valueOfOptional('formClienteIncidencia'),
+            correo: valueOfOptional('formEmailUsuario') || valueOfOptional('formCorreoRespuesta') || '',
+            solicita_respuesta: valueOfOptional('formSolicitaRespuesta'),
+            telefono: valueOfOptional('formTelefono'),
+            correo_respuesta: valueOfOptional('formCorreoRespuesta'),
+            fecha_cierre: '',
+            notas_internas: buildInternalNotes(),
+            attachments: attachments.map(({ id, name, type, size, url }) => ({ id, name, type, size, url: url || null }))
+        };
+
+        state.items.unshift(item);
+        state.lastUpdate = now.toISOString();
+        saveState(state);
+        
+        if (typeof db !== 'undefined' && db) {
+            db.collection('incidencias').doc(item.id).set(item).catch(err => {
+                console.warn('Error guardando en Firestore:', err);
+            });
+        }
+
+        updateCurrentTotal();
+        showMessage(`¡Incidencia ${item.id_original} guardada con éxito!`);
+        
+        // Reset form
+        document.getElementById('standaloneIncidentForm').reset();
+        document.getElementById('formHotel').value = 'Secotel Guadiana';
+        document.getElementById('formTipo').value = 'Queja';
+        setActiveButton('.center-card', 'center', 'Secotel Guadiana');
+        setActiveButton('.type-card', 'type', 'Queja');
+        updateRecordType('Queja');
+        renderSelectedAttachments();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        sendAutomaticNotification(item).then(notificationSent => {
+            if (NOTIFICATION_WEBHOOK_URL) {
+                showMessage(notificationSent
+                    ? `¡Incidencia ${item.id_original} guardada y aviso enviado!`
+                    : `Incidencia ${item.id_original} guardada.`);
+            }
+        }).catch(console.warn);
+
+    } catch (err) {
+        console.error("Error al guardar incidencia:", err);
+        showMessage(`Error al guardar: ${err.message || 'Inténtelo de nuevo'}`);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
     }
 }
 
@@ -198,14 +224,15 @@ async function saveAttachments(incidentId) {
         const recordId = `${incidentId}_att_${index}`;
         let downloadURL = null;
         
-        // Si Firebase Storage está disponible, lo subimos
+        // Si Firebase Storage está disponible, intentamos subir con timeout protector de 3.5 segundos
         if (typeof storage !== 'undefined' && storage) {
             try {
                 const storageRef = storage.ref(`incidencias/${incidentId}/${file.name}`);
-                const snapshot = await storageRef.put(file);
-                downloadURL = await snapshot.ref.getDownloadURL();
+                const uploadPromise = storageRef.put(file).then(snapshot => snapshot.ref.getDownloadURL());
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Storage')), 3500));
+                downloadURL = await Promise.race([uploadPromise, timeoutPromise]);
             } catch (error) {
-                console.error("Error uploading file to Firebase:", error);
+                console.warn("No se pudo subir a Firebase Storage (se conservará localmente):", error);
             }
         }
         
@@ -216,17 +243,20 @@ async function saveAttachments(incidentId) {
             type: file.type || 'application/octet-stream',
             size: file.size,
             createdAt: new Date().toISOString(),
-            blob: file, // Para mantener compatibilidad con local por si acaso
-            url: downloadURL // URL pública de Firebase
+            blob: file,
+            url: downloadURL
         };
         
         records.push(record);
     }
 
-    // Seguimos guardando en IndexedDB por seguridad local
-    const localDb = await openAttachmentDB();
-    await Promise.all(records.map(record => putAttachment(localDb, record)));
-    localDb.close();
+    try {
+        const localDb = await openAttachmentDB();
+        await Promise.all(records.map(record => putAttachment(localDb, record)));
+        localDb.close();
+    } catch (e) {
+        console.warn("Error guardando adjuntos en IndexedDB:", e);
+    }
     
     return records;
 }
@@ -339,8 +369,15 @@ function normalizeText(value) {
 
 function showMessage(message) {
     const el = document.getElementById('saveMessage');
-    el.textContent = message;
-    el.classList.toggle('active', Boolean(message));
+    if (el) {
+        el.textContent = message;
+        el.classList.toggle('active', Boolean(message));
+    }
+    const formEl = document.getElementById('formSaveMessage');
+    if (formEl) {
+        formEl.textContent = message;
+        formEl.classList.toggle('active', Boolean(message));
+    }
 }
 
 async function sendAutomaticNotification(item) {
