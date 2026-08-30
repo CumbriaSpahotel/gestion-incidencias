@@ -911,6 +911,7 @@ async function openIncidentModal(id) {
                                 <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
                                 <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
                                 <option value="Cerrado" ${item.estado === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
+                                <option value="Irresoluble" ${item.estado === 'Irresoluble' ? 'selected' : ''}>Irresoluble (Absurda/Imposible)</option>
                             </select>
                         </label>
                         <label class="full">
@@ -1452,10 +1453,11 @@ function renderKanban() {
     if (l.includes('proceso')) return 'En proceso';
     if (l.includes('resuelto')) return 'Resuelto';
     if (l.includes('cerrado')) return 'Cerrado';
+    if (l.includes('irresoluble')) return 'Irresoluble';
     return 'Pendiente';
   };
 
-  ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado'].forEach(status => {
+  ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado', 'Irresoluble'].forEach(status => {
     const col = board.querySelector('.kanban-column[data-status="' + status + '"] .kanban-cards');
     const countBadge = board.querySelector('.kanban-column[data-status="' + status + '"] .count');
     if (!col) return;

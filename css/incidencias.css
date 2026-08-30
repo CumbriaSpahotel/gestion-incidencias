@@ -563,6 +563,7 @@ tr:hover td {
 .badge-proceso { background-color: #fef3c7; color: #8a5b0a; }
 .badge-resuelto { background-color: #dff5e9; color: #145a3f; }
 .badge-cerrado { background-color: #f3f4f6; color: #1f2937; }
+.badge-irresoluble { background-color: #f1f5f9; color: #475569; text-decoration: line-through; }
 
 /* Buttons */
 .btn {
