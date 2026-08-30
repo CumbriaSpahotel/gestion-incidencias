@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/incidencias.css?v=4">
+    <link rel="stylesheet" href="css/incidencias.css?v=5">
 </head>
 
 <body>
@@ -201,7 +201,7 @@
                     <p>Use esta vista para revisar registros, asignar responsable y cambiar el estado conforme avanza la gestión.</p>
                 </div>
                 <div class="table-controls">
-                    <div class="filters">
+                    <div class="filters" style="flex-wrap: wrap;">
                         <select id="filterHotel" class="select-filter">
                             <option value="all">Todos los Hoteles</option>
                         </select>
@@ -220,6 +220,16 @@
                             <option value="Cerrado">Cerrado</option>
                             <option value="Irresoluble">Irresoluble</option>
                         </select>
+                        <div class="date-filter-group" title="Filtrar por rango de fechas">
+                            <i class="fa-regular fa-calendar" style="color: var(--primary);"></i>
+                            <span>Desde</span>
+                            <input type="date" id="filterFechaDesde" title="Fecha inicio">
+                            <span>Hasta</span>
+                            <input type="date" id="filterFechaHasta" title="Fecha fin">
+                            <button type="button" id="btnClearDateFilter" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 0.85rem;" title="Limpiar rango de fechas">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
                     </div>
                     <input type="text" id="searchInput" placeholder="Buscar por descripción, usuario..."
                         class="search-input">
@@ -229,7 +239,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Fecha</th>
+                                <th id="thSortFecha" class="th-sortable" title="Clic para ordenar por fecha">Fecha <i class="fa-solid fa-sort" style="margin-left: 4px;"></i></th>
                                 <th>Hotel</th>
                                 <th>Tipo</th>
                                 <th>Depto</th>
@@ -327,7 +337,7 @@
                     </div>
 
                     <div class="table-controls">
-                        <div class="filters">
+                        <div class="filters" style="flex-wrap: wrap;">
                             <select id="filterAdminHotel" class="select-filter">
                                 <option value="all">Todos los Hoteles</option>
                             </select>
@@ -346,6 +356,16 @@
                                 <option value="Cerrado">Cerrado</option>
                                 <option value="Irresoluble">Irresoluble</option>
                             </select>
+                            <div class="date-filter-group" title="Filtrar incidencias por rango de fecha en administración">
+                                <i class="fa-regular fa-calendar" style="color: var(--primary);"></i>
+                                <span>Desde</span>
+                                <input type="date" id="filterAdminFechaDesde" title="Fecha inicio administración">
+                                <span>Hasta</span>
+                                <input type="date" id="filterAdminFechaHasta" title="Fecha fin administración">
+                                <button type="button" id="btnClearAdminDateFilter" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 0.85rem;" title="Limpiar rango de fechas">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
                         <input type="text" id="searchAdminInput" placeholder="Buscar por ID, descripción, usuario..." class="search-input">
                     </div>
@@ -354,7 +374,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID / Fecha</th>
+                                    <th id="thAdminSortFecha" class="th-sortable" title="Clic para ordenar por fecha">ID / Fecha <i class="fa-solid fa-sort" style="margin-left: 4px;"></i></th>
                                     <th>Hotel</th>
                                     <th>Tipo</th>
                                     <th>Depto</th>
@@ -526,6 +546,6 @@
 
     <!-- Logic -->
     <script src="js/firebase-init.js"></script>
-    <script src="js/incidencias.js?v=4"></script>
+    <script src="js/incidencias.js?v=5"></script>
 </body>
 </html>

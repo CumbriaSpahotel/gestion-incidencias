@@ -10,8 +10,8 @@ const CONFIG = {
 let STATE = {
     incidencias: [],
     lastUpdate: null,
-    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente' },
-    adminFilters: { search: '', hotel: 'all', tipo: 'all', estado: 'all' },
+    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente', fechaDesde: '', fechaHasta: '', sortFecha: 'desc' },
+    adminFilters: { search: '', hotel: 'all', tipo: 'all', estado: 'all', fechaDesde: '', fechaHasta: '', sortFecha: 'desc' },
     isAdminUnlocked: false,
     pendingDeleteIncidentId: null
 };
@@ -22,6 +22,21 @@ window.refreshIntervalId = null;
 let chartByHotel = null;
 let chartTrend = null;
 let currentModalIncidentId = null;
+
+function matchesDateRange(itemDate, desde, hasta) {
+    if (!itemDate) return !desde && !hasta;
+    const d = new Date(itemDate);
+    if (isNaN(d.getTime())) return true;
+    if (desde) {
+        const dFrom = new Date(desde + 'T00:00:00');
+        if (d < dFrom) return false;
+    }
+    if (hasta) {
+        const dTo = new Date(hasta + 'T23:59:59');
+        if (d > dTo) return false;
+    }
+    return true;
+}
 
 // IndexedDB Helper for Persistent File Handle
 const DB_NAME = 'IncidenciasFilesDB';
@@ -237,6 +252,39 @@ function setupEventListeners() {
         STATE.filters.estado = e.target.value; renderTable();
     });
 
+    // Date Filters (Operational Table)
+    const fDesde = document.getElementById('filterFechaDesde');
+    if (fDesde) {
+        fDesde.addEventListener('change', (e) => {
+            STATE.filters.fechaDesde = e.target.value;
+            renderTable();
+        });
+    }
+    const fHasta = document.getElementById('filterFechaHasta');
+    if (fHasta) {
+        fHasta.addEventListener('change', (e) => {
+            STATE.filters.fechaHasta = e.target.value;
+            renderTable();
+        });
+    }
+    const btnClearDate = document.getElementById('btnClearDateFilter');
+    if (btnClearDate) {
+        btnClearDate.addEventListener('click', () => {
+            if (fDesde) fDesde.value = '';
+            if (fHasta) fHasta.value = '';
+            STATE.filters.fechaDesde = '';
+            STATE.filters.fechaHasta = '';
+            renderTable();
+        });
+    }
+    const thSort = document.getElementById('thSortFecha');
+    if (thSort) {
+        thSort.addEventListener('click', () => {
+            STATE.filters.sortFecha = STATE.filters.sortFecha === 'desc' ? 'asc' : 'desc';
+            renderTable();
+        });
+    }
+
     // Admin Filters
     const searchAdmin = document.getElementById('searchAdminInput');
     if (searchAdmin) {
@@ -263,6 +311,37 @@ function setupEventListeners() {
     if (filterAdminE) {
         filterAdminE.addEventListener('change', (e) => {
             STATE.adminFilters.estado = e.target.value;
+            renderAdminTable();
+        });
+    }
+    const fAdminDesde = document.getElementById('filterAdminFechaDesde');
+    if (fAdminDesde) {
+        fAdminDesde.addEventListener('change', (e) => {
+            STATE.adminFilters.fechaDesde = e.target.value;
+            renderAdminTable();
+        });
+    }
+    const fAdminHasta = document.getElementById('filterAdminFechaHasta');
+    if (fAdminHasta) {
+        fAdminHasta.addEventListener('change', (e) => {
+            STATE.adminFilters.fechaHasta = e.target.value;
+            renderAdminTable();
+        });
+    }
+    const btnClearAdminDate = document.getElementById('btnClearAdminDateFilter');
+    if (btnClearAdminDate) {
+        btnClearAdminDate.addEventListener('click', () => {
+            if (fAdminDesde) fAdminDesde.value = '';
+            if (fAdminHasta) fAdminHasta.value = '';
+            STATE.adminFilters.fechaDesde = '';
+            STATE.adminFilters.fechaHasta = '';
+            renderAdminTable();
+        });
+    }
+    const thAdminSort = document.getElementById('thAdminSortFecha');
+    if (thAdminSort) {
+        thAdminSort.addEventListener('click', () => {
+            STATE.adminFilters.sortFecha = STATE.adminFilters.sortFecha === 'desc' ? 'asc' : 'desc';
             renderAdminTable();
         });
     }
@@ -763,21 +842,33 @@ function renderOperations() {
 
 function renderTable() {
     const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    const { search, hotel, tipo, estado } = STATE.filters;
+    const { search, hotel, tipo, estado, fechaDesde, fechaHasta, sortFecha } = STATE.filters;
     const filtered = STATE.incidencias.filter(item => {
         const matchesSearch = (item.descripcion || '').toLowerCase().includes(search) || (item.usuario_registro || '').toLowerCase().includes(search);
         const matchesHotel = hotel === 'all' || item.hotel === hotel;
         const matchesTipo = tipo === 'all' || item.tipo === tipo;
         const matchesEstado = estado === 'all' || item.estado === estado;
-        return matchesSearch && matchesHotel && matchesTipo && matchesEstado;
+        const matchesDate = matchesDateRange(item.fecha_creacion, fechaDesde, fechaHasta);
+        return matchesSearch && matchesHotel && matchesTipo && matchesEstado && matchesDate;
     });
-    filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    filtered.sort((a, b) => {
+        const da = new Date(a.fecha_creacion).getTime() || 0;
+        const db = new Date(b.fecha_creacion).getTime() || 0;
+        return sortFecha === 'asc' ? da - db : db - da;
+    });
+
+    const thSort = document.getElementById('thSortFecha');
+    if (thSort) {
+        thSort.innerHTML = `Fecha <i class="fa-solid fa-arrow-${sortFecha === 'asc' ? 'up-short-wide' : 'down-wide-short'}" style="margin-left: 4px; color: var(--primary);"></i>`;
+    }
 
     if (!filtered.length) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-table">No hay registros con estos filtros.</td>
+                <td colspan="7" class="empty-table">No hay registros con los filtros y fechas seleccionados.</td>
             </tr>
         `;
         return;
@@ -1668,7 +1759,7 @@ function renderAdminTable() {
     if (!tbody) return;
 
     tbody.innerHTML = '';
-    const { search, hotel, tipo, estado } = STATE.adminFilters;
+    const { search, hotel, tipo, estado, fechaDesde, fechaHasta, sortFecha } = STATE.adminFilters;
     const filtered = STATE.incidencias.filter(item => {
         const term = search.toLowerCase();
         const matchesSearch = !term ||
@@ -1681,18 +1772,28 @@ function renderAdminTable() {
         const matchesHotel = hotel === 'all' || item.hotel === hotel;
         const matchesTipo = tipo === 'all' || item.tipo === tipo;
         const matchesEstado = estado === 'all' || item.estado === estado;
-        return matchesSearch && matchesHotel && matchesTipo && matchesEstado;
+        const matchesDate = matchesDateRange(item.fecha_creacion, fechaDesde, fechaHasta);
+        return matchesSearch && matchesHotel && matchesTipo && matchesEstado && matchesDate;
     });
 
-    filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    filtered.sort((a, b) => {
+        const da = new Date(a.fecha_creacion).getTime() || 0;
+        const db = new Date(b.fecha_creacion).getTime() || 0;
+        return sortFecha === 'asc' ? da - db : db - da;
+    });
+
+    const thAdminSort = document.getElementById('thAdminSortFecha');
+    if (thAdminSort) {
+        thAdminSort.innerHTML = `ID / Fecha <i class="fa-solid fa-arrow-${sortFecha === 'asc' ? 'up-short-wide' : 'down-wide-short'}" style="margin-left: 4px; color: var(--primary);"></i>`;
+    }
 
     const adminTotalEl = document.getElementById('adminTotalCount');
-    if (adminTotalEl) adminTotalEl.innerText = STATE.incidencias.length;
+    if (adminTotalEl) adminTotalEl.innerText = filtered.length;
 
     if (!filtered.length) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-table">No se encontraron incidencias en administración con los filtros aplicados.</td>
+                <td colspan="8" class="empty-table">No se encontraron incidencias en administración con los filtros y fechas aplicados.</td>
             </tr>
         `;
         return;
