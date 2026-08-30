@@ -881,14 +881,16 @@ async function openIncidentModal(id) {
                     </div>
                 </section>
 
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border);">
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">FECHA REGISTRO</span>${formatDateTime(item.fecha_creacion) || '-'}</div>
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">ZONA / SERVICIO</span>${escapeHtml(item.departamento || '-')}</div>
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">CLIENTE</span>${escapeHtml(item.cliente || '-')}</div>
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">REGISTRADO POR</span>${escapeHtml(item.usuario_registro || '-')}</div>
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">SOLICITA RESP.</span>${escapeHtml(item.solicita_respuesta || '-')}</div>
+                    <div style="font-size: 0.85rem;"><span style="display:block; color:var(--text-muted); font-size:0.7rem; font-weight:bold; margin-bottom: 2px;">CONTACTO</span>${escapeHtml([item.telefono, item.correo_respuesta].filter(Boolean).join(' · ') || '-')}</div>
+                </div>
+
                 <div class="detail-grid">
-                    ${detailField('Fecha de registro', formatDateTime(item.fecha_creacion))}
-                    ${detailField('Zona o servicio', item.departamento)}
-                    ${detailField('Cliente', item.cliente)}
-                    ${detailField('Registrado por', item.usuario_registro)}
-                    ${detailField('Solicita respuesta', item.solicita_respuesta)}
-                    ${detailField('Teléfono / correo de respuesta', [item.telefono, item.correo_respuesta].filter(Boolean).join(' · '))}
-                    ${detailField('Correo de registro', item.correo)}
                     ${detailField('Descripción completa', item.descripcion, true)}
                     <div class="detail-field full">
                         <span class="detail-label">Adjuntos</span>
@@ -899,14 +901,14 @@ async function openIncidentModal(id) {
 
             <!-- Columna Derecha: Panel de Gestión -->
             <div class="modal-right">
-                <form id="receptionManagementForm" class="reception-management" style="margin:0; padding:0; background:transparent; border:none; box-shadow:none;">
-                    <span class="section-kicker">Panel de Gestión</span>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Actualice el progreso, asigne responsable y documente las acciones.</p>
+                <form id="receptionManagementForm" class="reception-management" style="margin:0; padding:1.5rem; background:#f8fafc; border-radius: 0.5rem; border: 1px solid var(--border); box-shadow:none; height: 100%;">
+                    <span class="section-kicker" style="font-size: 1rem;">Panel de Gestión</span>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Actualice el progreso, asigne responsable y documente las acciones.</p>
                     
-                    <div class="form-grid" style="display:flex; flex-direction:column; gap:1rem;">
-                        <label class="full">
-                            <span>Estado actual</span>
-                            <select id="manageEstado" style="font-weight: bold; font-size: 1rem; color: var(--primary);">
+                    <div class="form-grid" style="display:flex; flex-direction:column; gap:1.25rem;">
+                        <label class="full" style="background: white; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #e2e8f0;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.5rem; display: block;">Estado actual</span>
+                            <select id="manageEstado" style="font-weight: bold; font-size: 1.1rem; color: var(--primary); border: none; background: transparent; padding: 0; width: 100%; cursor: pointer;">
                                 <option value="Pendiente" ${item.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                                 <option value="En proceso" ${item.estado === 'En proceso' ? 'selected' : ''}>En proceso</option>
                                 <option value="Resuelto" ${item.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
@@ -915,24 +917,24 @@ async function openIncidentModal(id) {
                             </select>
                         </label>
                         <label class="full">
-                            <span>Asignado a (Responsable)</span>
-                            <input id="manageResponsable" type="text" value="${escapeHtml(item.responsable || '')}" placeholder="Mantenimiento, Recepción...">
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Asignado a (Responsable)</span>
+                            <input id="manageResponsable" type="text" value="${escapeHtml(item.responsable || '')}" placeholder="Mantenimiento, Recepción..." style="font-size: 1rem; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
                         </label>
                         <label class="full">
-                            <span>Acción inmediata / Primera respuesta</span>
-                            <textarea id="manageAccion" rows="2" placeholder="Qué se hizo al momento de la incidencia...">${escapeHtml(item.accion || '')}</textarea>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Acción inmediata / 1ª Respuesta</span>
+                            <textarea id="manageAccion" rows="2" placeholder="Qué se hizo al momento de la incidencia..." style="font-size: 1rem; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;">${escapeHtml(item.accion || '')}</textarea>
                         </label>
                         <label class="full">
-                            <span>Gestión de Dirección / Seguimiento</span>
-                            <textarea id="manageGestionDireccion" rows="3" placeholder="Pasos dados para resolver el problema a fondo...">${escapeHtml(item.gestion_direccion || item.notas_internas || '')}</textarea>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Gestión de Dirección / Seguimiento</span>
+                            <textarea id="manageGestionDireccion" rows="3" placeholder="Pasos dados para resolver el problema a fondo..." style="font-size: 1rem; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;">${escapeHtml(item.gestion_direccion || item.notas_internas || '')}</textarea>
                         </label>
                         <label class="full">
-                            <span>Resolución Final</span>
-                            <textarea id="manageResolucion" rows="2" placeholder="Cómo ha quedado resuelto el caso...">${escapeHtml(item.resolucion || '')}</textarea>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Resolución Final</span>
+                            <textarea id="manageResolucion" rows="2" placeholder="Cómo ha quedado resuelto el caso..." style="font-size: 1rem; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;">${escapeHtml(item.resolucion || '')}</textarea>
                         </label>
                         <label class="full">
-                            <span>Fecha de cierre</span>
-                            <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}">
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Fecha de cierre</span>
+                            <input id="manageFechaCierre" type="datetime-local" value="${formatDateTimeInput(item.fecha_cierre)}" style="font-size: 1rem; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
                         </label>
                     </div>
                     </div>
