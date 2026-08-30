@@ -4,6 +4,17 @@ const ATTACHMENT_STORE = 'attachments';
 const NOTIFICATION_EMAIL = 'comunicaciones@hotelguadiana.es';
 const NOTIFICATION_WEBHOOK_URL = 'https://formspree.io/f/xbgjlpnr';
 
+// ── CONFIGURACIÓN DE SYNOLOGY NAS ──────────────────────────────────────
+// Rellena con tu dirección de QuickConnect o IP, p.ej. "https://tuempresa.synology.me"
+const SYNOLOGY_URL = 'https://miempresa.synology.me'; 
+// Usuario creado en tu DSM con permisos de escritura/subida en la carpeta de incidencias
+const SYNOLOGY_USER = 'incidencias_upload';
+const SYNOLOGY_PASS = 'CONTRASEÑA_DE_USUARIO_AQUI';
+// Ruta exacta donde se guardarán los archivos en Synology
+const SYNOLOGY_FOLDER = '/Carpeta de equipo/compartidas A B C/B/Reclamaciones';
+const SYNOLOGY_TIMEOUT = 10000; // ms máximo por subida para evitar bloqueos
+
+
 document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTotal();
     setupPickers();
@@ -148,13 +159,20 @@ async function saveIncident(event) {
             estado: 'Pendiente',
             accion: buildActionSummary(),
             cliente: valueOfOptional('formCliente') || valueOfOptional('formClienteIncidencia'),
-            correo: valueOfOptional('formEmailUsuario') || valueOfOptional('formCorreoRespuesta') || '',
+            correo: valueOfOptional('formCorreoRespuesta') || '',
             solicita_respuesta: valueOfOptional('formSolicitaRespuesta'),
             telefono: valueOfOptional('formTelefono'),
             correo_respuesta: valueOfOptional('formCorreoRespuesta'),
             fecha_cierre: '',
             notas_internas: buildInternalNotes(),
-            attachments: attachments.map(({ id, name, type, size, url }) => ({ id, name, type, size, url: url || null }))
+            attachments: attachments.map(({ id, name, type, size, url, synologyPath }) => ({
+                id,
+                name,
+                type,
+                size,
+                url: url || null,
+                synologyPath: synologyPath || null
+            }))
         };
 
         state.items.unshift(item);
@@ -257,25 +275,126 @@ function fileToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
     });
 }
 
+// ── Synology FileStation API ──────────────────────────────────────────
+
+async function synologyLogin() {
+    const url = `${SYNOLOGY_URL}/webapi/auth.cgi?` + new URLSearchParams({
+        api: 'SYNO.API.Auth',
+        version: '3',
+        method: 'login',
+        account: SYNOLOGY_USER,
+        passwd: SYNOLOGY_PASS,
+        session: 'FileStation',
+        format: 'sid'
+    });
+    
+    const res = await fetch(url, { credentials: 'omit' });
+    const data = await res.json();
+    if (!data.success) {
+        throw new Error(`Synology login error: ${JSON.stringify(data.error)}`);
+    }
+    return data.data.sid;
+}
+
+async function synologyLogout(sid) {
+    try {
+        const url = `${SYNOLOGY_URL}/webapi/auth.cgi?` + new URLSearchParams({
+            api: 'SYNO.API.Auth',
+            version: '1',
+            method: 'logout',
+            session: 'FileStation',
+            _sid: sid
+        });
+        await fetch(url, { credentials: 'omit' });
+    } catch (e) {
+        console.warn("Synology logout error:", e);
+    }
+}
+
+async function synologyUploadFile(sid, file, incidentId) {
+    const prefixedName = `${incidentId}__${file.name}`;
+    const formData = new FormData();
+    formData.append('api', 'SYNO.FileStation.Upload');
+    formData.append('version', '2');
+    formData.append('method', 'upload');
+    formData.append('path', SYNOLOGY_FOLDER);
+    formData.append('create_parents', 'true');
+    formData.append('overwrite', 'false');
+    formData.append('file', file, prefixedName);
+    formData.append('_sid', sid);
+
+    const uploadUrl = `${SYNOLOGY_URL}/webapi/entry.cgi?_sid=${encodeURIComponent(sid)}`;
+    const res = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+        credentials: 'omit'
+    });
+    const data = await res.json();
+    if (!data.success) {
+        throw new Error(`Synology upload error: ${JSON.stringify(data.error)}`);
+    }
+    return `${SYNOLOGY_URL}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodeURIComponent(SYNOLOGY_FOLDER + '/' + prefixedName)}&mode=open`;
+}
+
+async function uploadFilesToSynology(files, incidentId) {
+    if (!SYNOLOGY_URL || SYNOLOGY_URL === 'https://miempresa.synology.me') {
+        return null; // Omitir si no está configurado o tiene la URL por defecto
+    }
+
+    let sid = null;
+    const results = [];
+    try {
+        const loginPromise = synologyLogin();
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Timeout conectando a Synology")), SYNOLOGY_TIMEOUT)
+        );
+        sid = await Promise.race([loginPromise, timeoutPromise]);
+
+        for (const file of files) {
+            try {
+                const downloadURL = await synologyUploadFile(sid, file, incidentId);
+                results.push({ name: file.name, url: downloadURL, path: `${SYNOLOGY_FOLDER}/${incidentId}__${file.name}`, ok: true });
+            } catch (fileErr) {
+                console.warn(`Error al subir archivo ${file.name} a Synology:`, fileErr);
+                results.push({ name: file.name, url: null, path: null, ok: false });
+            }
+        }
+    } catch (err) {
+        console.warn("No se pudo conectar a Synology (se usará Base64 local):", err.message || err);
+        return null;
+    } finally {
+        if (sid) {
+            await synologyLogout(sid);
+        }
+    }
+    return results;
+}
+
+// ── Guardado de adjuntos ──────────────────────────────────────────────
+
 async function saveAttachments(incidentId) {
     const files = Array.from(document.getElementById('formAdjuntos').files || []);
     if (!files.length) return [];
 
+    // Intentamos subir a Synology primero
+    const synologyResults = await uploadFilesToSynology(files, incidentId);
     const records = [];
     
     for (let index = 0; index < files.length; index++) {
         const file = files[index];
         const recordId = `${incidentId}_att_${index}`;
-        let downloadURL = null;
+        const synResult = synologyResults ? synologyResults[index] : null;
         
-        // Adjuntos: guardar como Data URL comprimida (compatible sin CORS).
-        // Cuando se configure CORS en Firebase Storage, se puede habilitar el bloque de arriba.
-        // NOTA: Firebase Storage queda desactivado hasta resolver CORS en el bucket.
-        // Para activarlo: gsutil cors set cors.json gs://centros-incidencias.firebasestorage.app
-        try {
-            downloadURL = await fileToDataUrl(file);
-        } catch (e) {
-            console.warn("Error generando Data URL para adjunto:", e);
+        let downloadURL = synResult && synResult.ok ? synResult.url : null;
+        let synologyPath = synResult && synResult.ok ? synResult.path : null;
+
+        // Fallback si falló o no se subió a Synology
+        if (!downloadURL) {
+            try {
+                downloadURL = await fileToDataUrl(file);
+            } catch (e) {
+                console.warn("Error generando Data URL para adjunto:", e);
+            }
         }
         
         const record = {
@@ -286,7 +405,8 @@ async function saveAttachments(incidentId) {
             size: file.size,
             createdAt: new Date().toISOString(),
             blob: file,
-            url: downloadURL
+            url: downloadURL,
+            synologyPath: synologyPath
         };
         
         records.push(record);

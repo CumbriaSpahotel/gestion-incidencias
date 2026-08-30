@@ -1210,22 +1210,24 @@ async function renderIncidentAttachments(item) {
         }
 
         const objectUrl = record?.blob ? URL.createObjectURL(record.blob) : meta.url;
-        if(record?.blob) card.dataset.objectUrl = objectUrl;
+        if (record?.blob) card.dataset.objectUrl = objectUrl;
         const isImage = (meta.type || "").startsWith("image/");
         card.innerHTML = isImage ? `
             <a href="${objectUrl}" target="_blank" rel="noopener">
-                <img src="${objectUrl}" alt="${escapeHtml(record.name || meta.name)}">
+                <img src="${objectUrl}" alt="${escapeHtml(record?.name || meta.name)}">
             </a>
             <div>
-                <strong>${escapeHtml(record.name || meta.name)}</strong>
-                <span>${formatBytes(record.size || meta.size)}</span>
+                <strong>${escapeHtml(record?.name || meta.name)}</strong>
+                <span>${formatBytes(record?.size || meta.size)}</span>
+                ${meta.synologyPath ? `<span class="synology-badge" style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:4px;"><i class="fa-solid fa-server" style="margin-right:4px;"></i>En Synology: ${escapeHtml(meta.synologyPath)}</span>` : ''}
             </div>
         ` : `
             <i class="fa-solid fa-file"></i>
             <div>
-                <strong>${escapeHtml(record.name || meta.name)}</strong>
-                <span>${formatBytes(record.size || meta.size)}</span>
-                <a href="${objectUrl}" download="${escapeHtml(record.name || meta.name)}">Descargar archivo</a>
+                <strong>${escapeHtml(record?.name || meta.name)}</strong>
+                <span>${formatBytes(record?.size || meta.size)}</span>
+                <a href="${objectUrl}" download="${escapeHtml(record?.name || meta.name)}" style="display:inline-block; margin-top:4px;">Descargar archivo</a>
+                ${meta.synologyPath ? `<span class="synology-badge" style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:4px;"><i class="fa-solid fa-server" style="margin-right:4px;"></i>En Synology: ${escapeHtml(meta.synologyPath)}</span>` : ''}
             </div>
         `;
         viewer.appendChild(card);
