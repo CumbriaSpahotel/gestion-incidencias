@@ -97,7 +97,7 @@ const FIELD_MAP = {
     tipo: ['¿Qué tipo de regi'],
     departamento: ['Zona o servicio'],
     cliente: ['Nombre completo del Cliente'],
-    descripcion: ['¿Qué incidencia', 'incidencia, queja o sugerencia', 'relevante', 'Cuéntanos', 'Descripción'],
+    descripcion: ['¿Qué incidencia', 'incidencia, queja o sugerencia', 'relevante', 'Cuéntanos', 'Descripción', 'Problema', 'Detalle', 'Motivo', 'Comentarios', 'Observaciones', 'Asunto'],
     accion: ['¿Se ha dado una sol'],
     solicita_respuesta: ['Solicita Respuesta', 'solicitado respuesta'],
     telefono: ['Teléfono de Contacto'],
