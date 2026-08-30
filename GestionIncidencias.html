@@ -374,7 +374,30 @@
         </main>
     </div>
 
-    <!-- Delete Confirmation Modal (Solo accesible desde Administración) -->
+    <div id="incidentModal" class="modal-backdrop" aria-hidden="true">
+        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <header class="modal-header">
+                <div>
+                    <span id="modalMeta" class="modal-meta"></span>
+                    <h2 id="modalTitle">Detalle de incidencia</h2>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="btnDeleteModalTop" class="btn btn-danger" type="button" style="padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem;" onclick="solicitarEliminarDesdeModal()">
+                        <i class="fa-solid fa-trash-can"></i> Eliminar
+                    </button>
+                    <button id="btnSaveModalTop" class="btn btn-primary" type="button" style="padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem;" onclick="document.getElementById('receptionManagementForm').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                    </button>
+                    <button id="btnCloseModal" class="icon-button" type="button" aria-label="Cerrar">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </header>
+            <div id="modalBody" class="modal-body"></div>
+        </section>
+    </div>
+
+    <!-- Delete Confirmation Modal (Con z-index superior, siempre encima de cualquier ficha o modal) -->
     <div id="deleteConfirmModal" class="modal-backdrop" aria-hidden="true">
         <section class="modal-panel" style="max-width: 550px; height: auto; max-height: 90vh;" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
             <header class="modal-header" style="border-bottom: 2px solid var(--danger);">
@@ -412,29 +435,6 @@
                     </button>
                 </div>
             </div>
-        </section>
-    </div>
-
-    <div id="incidentModal" class="modal-backdrop" aria-hidden="true">
-        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-            <header class="modal-header">
-                <div>
-                    <span id="modalMeta" class="modal-meta"></span>
-                    <h2 id="modalTitle">Detalle de incidencia</h2>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button id="btnDeleteModalTop" class="btn btn-danger" type="button" style="padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem;" onclick="solicitarEliminarDesdeModal()">
-                        <i class="fa-solid fa-trash-can"></i> Eliminar
-                    </button>
-                    <button id="btnSaveModalTop" class="btn btn-primary" type="button" style="padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem;" onclick="document.getElementById('receptionManagementForm').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))">
-                        <i class="fa-solid fa-floppy-disk"></i> Guardar
-                    </button>
-                    <button id="btnCloseModal" class="icon-button" type="button" aria-label="Cerrar">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </header>
-            <div id="modalBody" class="modal-body"></div>
         </section>
     </div>
 
@@ -526,6 +526,6 @@
 
     <!-- Logic -->
     <script src="js/firebase-init.js"></script>
-    <script src="js/incidencias.js?v=3"></script>
+    <script src="js/incidencias.js?v=4"></script>
 </body>
 </html>
