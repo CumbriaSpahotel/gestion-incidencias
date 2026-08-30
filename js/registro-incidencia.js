@@ -213,6 +213,45 @@ function renderSelectedAttachments() {
     `).join('');
 }
 
+function fileToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
+    return new Promise((resolve) => {
+        if (!file.type || !file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width > height) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(reader.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
 async function saveAttachments(incidentId) {
     const files = Array.from(document.getElementById('formAdjuntos').files || []);
     if (!files.length) return [];
@@ -224,15 +263,24 @@ async function saveAttachments(incidentId) {
         const recordId = `${incidentId}_att_${index}`;
         let downloadURL = null;
         
-        // Si Firebase Storage está disponible, intentamos subir con timeout protector de 3.5 segundos
+        // 1. Intentar subir a Firebase Storage si está disponible (timeout de 2 segundos para no bloquear)
         if (typeof storage !== 'undefined' && storage) {
             try {
                 const storageRef = storage.ref(`incidencias/${incidentId}/${file.name}`);
                 const uploadPromise = storageRef.put(file).then(snapshot => snapshot.ref.getDownloadURL());
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Storage')), 3500));
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Storage Timeout/CORS')), 2000));
                 downloadURL = await Promise.race([uploadPromise, timeoutPromise]);
             } catch (error) {
-                console.warn("No se pudo subir a Firebase Storage (se conservará localmente):", error);
+                console.warn("Storage no disponible o bloqueado por CORS. Usando codificación directa para nube:", error);
+            }
+        }
+
+        // 2. Si Storage no devolvió URL (ej. por CORS), usamos Data URL optimizada para que viaje por Firestore a todos los dispositivos
+        if (!downloadURL) {
+            try {
+                downloadURL = await fileToDataUrl(file);
+            } catch (e) {
+                console.warn("Error generando Data URL:", e);
             }
         }
         
