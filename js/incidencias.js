@@ -10,7 +10,7 @@ const CONFIG = {
 let STATE = {
     incidencias: [],
     lastUpdate: null,
-    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente', fechaDesde: '', fechaHasta: '', sortFecha: 'desc' },
+    filters: { search: '', hotel: 'all', tipo: 'all', estado: 'Pendiente,En proceso', fechaDesde: '', fechaHasta: '', sortFecha: 'desc' },
     adminFilters: { search: '', hotel: 'all', tipo: 'all', estado: 'all', fechaDesde: '', fechaHasta: '', sortFecha: 'desc' },
     isAdminUnlocked: false,
     pendingDeleteIncidentId: null
@@ -865,7 +865,12 @@ function renderTable() {
         const matchesSearch = (item.descripcion || '').toLowerCase().includes(search) || (item.usuario_registro || '').toLowerCase().includes(search);
         const matchesHotel = hotel === 'all' || item.hotel === hotel;
         const matchesTipo = tipo === 'all' || item.tipo === tipo;
-        const matchesEstado = estado === 'all' || item.estado === estado;
+        const itemEstado = item.estado || 'Pendiente';
+        const matchesEstado = estado === 'all'
+            ? true
+            : estado.includes(',')
+                ? estado.split(',').map(s => s.trim()).includes(itemEstado)
+                : itemEstado === estado;
         const matchesDate = matchesDateRange(item.fecha_creacion, fechaDesde, fechaHasta);
         return matchesSearch && matchesHotel && matchesTipo && matchesEstado && matchesDate;
     });
@@ -1789,7 +1794,12 @@ function renderAdminTable() {
 
         const matchesHotel = hotel === 'all' || item.hotel === hotel;
         const matchesTipo = tipo === 'all' || item.tipo === tipo;
-        const matchesEstado = estado === 'all' || item.estado === estado;
+        const itemEstado = item.estado || 'Pendiente';
+        const matchesEstado = estado === 'all'
+            ? true
+            : estado.includes(',')
+                ? estado.split(',').map(s => s.trim()).includes(itemEstado)
+                : itemEstado === estado;
         const matchesDate = matchesDateRange(item.fecha_creacion, fechaDesde, fechaHasta);
         return matchesSearch && matchesHotel && matchesTipo && matchesEstado && matchesDate;
     });
